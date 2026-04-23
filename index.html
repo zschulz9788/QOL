@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QOL Impact Index — Base Preference Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #181c22;
+    --border: #2a2f38;
+    --amber: #f5a623;
+    --amber-dim: #7a5211;
+    --green: #39d98a;
+    --green-dim: #1a5c3a;
+    --red: #e05252;
+    --orange: #f07c3a;
+    --yellow: #f5d020;
+    --text: #d4dbe8;
+    --text-dim: #5a6475;
+    --text-muted: #3a424f;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow Condensed', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* SCANLINE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.07) 2px,
+      rgba(0,0,0,0.07) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: var(--surface);
+  }
+
+  .logo-mark {
+    width: 44px;
+    height: 44px;
+    border: 2px solid var(--amber);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    color: var(--amber);
+    font-size: 13px;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+
+  .header-titles h1 {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    line-height: 1;
+    color: #fff;
+  }
+
+  .header-titles p {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  .status-dot {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 36px 24px 80px;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--amber);
+    border-bottom: 1px solid var(--amber-dim);
+    padding-bottom: 6px;
+    margin-bottom: 20px;
+  }
+
+  /* PREF PANEL */
+  .pref-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px 32px;
+    margin-bottom: 36px;
+  }
+
+  .pref-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 28px;
+    margin-bottom: 28px;
+  }
+
+  .pref-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pref-field label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .pref-field .hint {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: -4px;
+  }
+
+  .pref-field input[type="time"],
+  .pref-field input[type="number"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--amber);
+    font-family: var(--mono);
+    font-size: 18px;
+    padding: 10px 14px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .pref-field input:focus {
+    border-color: var(--amber);
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+
+  .pref-field .range-display {
+    font-family: var(--mono);
+    font-size: 22px;
+    color: var(--amber);
+    padding: 6px 0;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--amber);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .weight-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .weight-row label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+  .weight-row label span {
+    font-family: var(--mono);
+    color: var(--amber);
+  }
+
+  .weights-section {
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+  }
+
+  .weights-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    font-family: var(--mono);
+  }
+
+  .weights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  .weight-sum {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: right;
+  }
+
+  .weight-sum.ok { color: var(--green); }
+  .weight-sum.warn { color: var(--red); }
+
+  .run-btn {
+    display: block;
+    width: 100%;
+    margin-top: 24px;
+    padding: 16px;
+    background: transparent;
+    border: 2px solid var(--amber);
+    color: var(--amber);
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .run-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 100%; height: 100%;
+    background: var(--amber);
+    transition: left 0.25s ease;
+    z-index: -1;
+  }
+
+  .run-btn:hover {
+    color: var(--bg);
+    background: var(--amber);
+  }
+
+  .run-btn:hover::before { left: 0; }
+
+  /* RESULTS */
+  #results { display: none; }
+
+  .results-intro {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    letter-spacing: 1px;
+  }
+
+  .base-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+    margin-bottom: 48px;
+  }
+
+  .base-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .base-card.rank-1 { border-color: var(--amber); }
+  .base-card.rank-2 { border-color: #666; }
+  .base-card.rank-3 { border-color: #555; }
+
+  .base-card:hover { border-color: var(--amber); }
+
+  .base-card .rank-badge {
+    position: absolute;
+    top: -1px; right: -1px;
+    background: var(--amber);
+    color: var(--bg);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: bold;
+    padding: 3px 8px;
+    letter-spacing: 1px;
+  }
+  .base-card.rank-1 .rank-badge { background: var(--amber); }
+  .base-card.rank-2 .rank-badge { background: #888; }
+  .base-card.rank-3 .rank-badge { background: #666; }
+
+  .base-card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .base-code {
+    font-size: 40px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    line-height: 1;
+    color: #fff;
+  }
+
+  .base-total {
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  .base-score-bar {
+    height: 6px;
+    background: var(--border);
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .base-score-fill {
+    height: 100%;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .base-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .metric-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .metric-name {
+    flex: 1;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .metric-score {
+    font-family: var(--mono);
+    font-size: 13px;
+    width: 52px;
+    text-align: right;
+  }
+
+  .metric-bar {
+    width: 60px;
+    height: 3px;
+    background: var(--border);
+    position: relative;
+  }
+
+  .metric-bar-fill {
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+  }
+
+  /* LEADERBOARD TABLE */
+  .leaderboard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 36px;
+  }
+
+  .lb-row {
+    display: grid;
+    grid-template-columns: 36px 80px 1fr 80px 80px;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: background 0.15s;
+  }
+
+  .lb-row:hover { background: var(--surface2); }
+  .lb-row.lb-header {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    background: var(--bg);
+    cursor: default;
+  }
+  .lb-row:last-child { border-bottom: none; }
+
+  .lb-rank { color: var(--text-dim); font-family: var(--mono); font-size: 12px; }
+  .lb-rank.gold { color: var(--amber); }
+  .lb-base { font-size: 18px; font-weight: 900; letter-spacing: 2px; color: #fff; }
+  .lb-bar { position: relative; height: 4px; background: var(--border); }
+  .lb-fill { height: 100%; position: absolute; }
+  .lb-score { font-family: var(--mono); font-size: 16px; text-align: right; }
+  .lb-grade { font-family: var(--mono); font-size: 13px; text-align: right; }
+
+  /* Color coding */
+  .c-green { color: #39d98a; }
+  .c-lime { color: #a1c935; }
+  .c-yellow { color: #ffc107; }
+  .c-orange { color: #f07c3a; }
+  .c-red { color: #e05252; }
+
+  .bg-green { background: #39d98a; }
+  .bg-lime { background: #a1c935; }
+  .bg-yellow { background: #ffc107; }
+  .bg-orange { background: #f07c3a; }
+  .bg-red { background: #e05252; }
+
+  /* TICKER */
+  .ticker-bar {
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+    overflow: hidden;
+    margin-bottom: 36px;
+    white-space: nowrap;
+  }
+
+  .ticker-inner {
+    display: inline-block;
+    animation: ticker 20s linear infinite;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+  }
+
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* CALLOUT */
+  .winner-callout {
+    background: linear-gradient(135deg, rgba(245,166,35,0.1) 0%, transparent 60%);
+    border: 1px solid var(--amber);
+    padding: 20px 28px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    animation: fadeIn 0.5s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .winner-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+
+  .winner-base {
+    font-size: 52px;
+    font-weight: 900;
+    color: var(--amber);
+    letter-spacing: 4px;
+    line-height: 1;
+  }
+
+  .winner-score {
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .winner-right {
+    margin-left: auto;
+    text-align: right;
+  }
+
+  .winner-grade {
+    font-size: 72px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    text-align: center;
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+  }
+
+  @media (max-width: 600px) {
+    header { padding: 16px 20px; }
+    main { padding: 24px 16px 60px; }
+    .pref-grid { grid-template-columns: 1fr 1fr; }
+    .base-cards { grid-template-columns: 1fr; }
+    .lb-row { grid-template-columns: 28px 60px 1fr 60px; gap: 10px; }
+    .lb-grade { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">QOL</div>
+  <div class="header-titles">
+    <h1>QOL Impact Index</h1>
+    <p>Base Quality-of-Life Preference Calculator</p>
+  </div>
+  <div class="status-dot">
+    <div class="dot"></div>
+    SYSTEM READY
+  </div>
+</header>
+
+<main>
+
+  <!-- PREFERENCES PANEL -->
+  <div class="pref-panel">
+    <div class="section-label">// YOUR PERSONAL PREFERENCES</div>
+
+    <div class="pref-grid">
+
+      <div class="pref-field">
+        <label>Late Release Threshold</label>
+        <div class="hint">Trips ending after this time hurt QOL</div>
+        <input type="time" id="pref-late" value="17:30">
+      </div>
+
+      <div class="pref-field">
+        <label>Early Check-In Threshold</label>
+        <div class="hint">Trips starting before this time hurt QOL</div>
+        <input type="time" id="pref-early" value="10:00">
+      </div>
+
+      <div class="pref-field">
+        <label>Max Sit Length (hours)</label>
+        <div class="hint">Sits longer than this feel wasted</div>
+        <input type="number" id="pref-sit" value="2.36" step="0.01" min="1" max="6">
+      </div>
+
+      <div class="pref-field">
+        <label>Preferred Legs / Day</label>
+        <div class="hint">Your ideal average legs per duty day</div>
+        <input type="number" id="pref-legs" value="2.5" step="0.1" min="1" max="6">
+      </div>
+
+      <div class="pref-field">
+        <label>Min Overnight Length (hours)</label>
+        <div class="hint">Overnights shorter than this feel short</div>
+        <input type="number" id="pref-ron" value="11" step="0.5" min="6" max="20">
+      </div>
+
+    </div>
+
+    <!-- WEIGHTS -->
+    <div class="weights-section">
+      <div class="weights-label">// WHAT MATTERS MOST TO YOU? (weights must total 100)</div>
+      <div class="weights-grid">
+        <div class="weight-row">
+          <label>Late Releases <span id="wv-late">35</span></label>
+          <input type="range" id="w-late" min="0" max="70" value="35" oninput="updateWeight('late',this.value)">
+        </div>
+        <div class="weight-row">
+          <label>Early Check-Ins <span id="wv-early">25</span></label>
+          <input type="range" id="w-early" min="0" max="70" value="25" oninput="updateWeight('early',this.value)">
+        </div>
+        <div class="weight-row">
+          <label>Long Sits <span id="wv-sits">20</span></label>
+          <input type="range" id="w-sits" min="0" max="70" value="20" oninput="updateWeight('sits',this.value)">
+        </div>
+        <div class="weight-row">
+          <label>Legs per Day <span id="wv-legs">15</span></label>
+          <input type="range" id="w-legs" min="0" max="70" value="15" oninput="updateWeight('legs',this.value)">
+        </div>
+        <div class="weight-row">
+          <label>Short Overnights <span id="wv-ron">5</span></label>
+          <input type="range" id="w-ron" min="0" max="70" value="5" oninput="updateWeight('ron',this.value)">
+        </div>
+      </div>
+      <div class="weight-sum" id="weight-sum">Total: 100 / 100</div>
+    </div>
+
+    <button class="run-btn" onclick="runScoring()">▶ Calculate My QOL Rankings</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+
+    <div class="section-label">// SCORING RESULTS</div>
+
+    <div class="ticker-bar">
+      <div class="ticker-inner" id="ticker-text">— — —</div>
+    </div>
+
+    <div class="winner-callout" id="winner-callout"></div>
+
+    <div class="leaderboard" id="leaderboard"></div>
+
+    <div class="section-label">// BASE BREAKDOWN</div>
+    <div class="base-cards" id="base-cards"></div>
+
+  </div>
+
+</main>
+
+<footer>QOL IMPACT INDEX — PERSONAL PREFERENCE ENGINE — FOR INFORMATIONAL USE</footer>
+
+<script>
+// ============================================================
+// BASE RAW DATA (median survey values per base)
+// Each base stores representative survey distributions:
+//   lateReleases_pct  — % of trips ending after base-default threshold
+//   earlyCheckins_pct — % of trips starting before base-default threshold
+//   longSits_pct      — % of sits over base-default threshold
+//   avgLegs           — average legs per duty day
+//   shortON_pct       — % of overnights under base-default threshold
+//
+// These are approximate survey distributions from the original tool's
+// band calibrations (the band midpoints that would yield typical scores).
+// Replace with your actual survey data for precise results.
+// ============================================================
+
+const BASE_DATA = {
+  BOS: {
+    name: "Boston",
+    lateReleases_pct: 22,   // ~20% of trips release after 17:30
+    earlyCheckins_pct: 52,  // ~52% start before 10:00 (positive for BOS)
+    longSits_pct: 18,
+    avgLegs: 2.5,
+    shortON_pct: 8,
+    // Base-specific thresholds for reference
+    baseLateMins: 17*60+30,
+    baseEarlyMins: 10*60,
+    baseSitHrs: 2.36,
+    baseRONMins: 11*60,
+  },
+  CMH: {
+    name: "Columbus",
+    lateReleases_pct: 28,
+    earlyCheckins_pct: 25,
+    longSits_pct: 20,
+    avgLegs: 3.0,
+    shortON_pct: 12,
+    baseLateMins: 18*60,
+    baseEarlyMins: 12*60,
+    baseSitHrs: 2.31,
+    baseRONMins: 11*60,
+  },
+  DCA: {
+    name: "Washington",
+    lateReleases_pct: 15,
+    earlyCheckins_pct: 20,
+    longSits_pct: 22,
+    avgLegs: 2.9,
+    shortON_pct: 10,
+    baseLateMins: 17*60+30,
+    baseEarlyMins: 10*60,
+    baseSitHrs: 2.33,
+    baseRONMins: 11*60,
+  },
+  EWR: {
+    name: "Newark",
+    lateReleases_pct: 20,
+    earlyCheckins_pct: 18,
+    longSits_pct: 19,
+    avgLegs: 2.5,
+    shortON_pct: 8,
+    baseLateMins: 18*60,
+    baseEarlyMins: 10*60,
+    baseSitHrs: 2.35,
+    baseRONMins: 11*60,
+  },
+  IND: {
+    name: "Indianapolis",
+    lateReleases_pct: 18,
+    earlyCheckins_pct: 15,
+    longSits_pct: 20,
+    avgLegs: 2.95,
+    shortON_pct: 6,
+    baseLateMins: 17*60+30,
+    baseEarlyMins: 10*60,
+    baseSitHrs: 2.36,
+    baseRONMins: 11*60,
+  },
+  LGA: {
+    name: "LaGuardia",
+    lateReleases_pct: 22,
+    earlyCheckins_pct: 22,
+    longSits_pct: 17,
+    avgLegs: 2.95,
+    shortON_pct: 7,
+    baseLateMins: 18*60,
+    baseEarlyMins: 10*60,
+    baseSitHrs: 2.39,
+    baseRONMins: 11*60,
+  },
+  ORD: {
+    name: "Chicago O'Hare",
+    lateReleases_pct: 18,
+    earlyCheckins_pct: 20,
+    longSits_pct: 20,
+    avgLegs: 2.5,
+    shortON_pct: 8,
+    baseLateMins: 18*60+30,
+    baseEarlyMins: 10*60,
+    baseSitHrs: 2.47,
+    baseRONMins: 11*60,
+  },
+  PHL: {
+    name: "Philadelphia",
+    lateReleases_pct: 20,
+    earlyCheckins_pct: 12,
+    longSits_pct: 22,
+    avgLegs: 2.4,
+    shortON_pct: 7,
+    baseLateMins: 18*60+30,
+    baseEarlyMins: 10*60,
+    baseSitHrs: 2.47,
+    baseRONMins: 11*60,
+  },
+  PIT: {
+    name: "Pittsburgh",
+    lateReleases_pct: 16,
+    earlyCheckins_pct: 10,
+    longSits_pct: 14,
+    avgLegs: 2.45,
+    shortON_pct: 6,
+    baseLateMins: 18*60+30,
+    baseEarlyMins: 10*60,
+    baseSitHrs: 2.29,
+    baseRONMins: 11*60,
+  },
+  SDF: {
+    name: "Louisville",
+    lateReleases_pct: 18,
+    earlyCheckins_pct: 16,
+    longSits_pct: 18,
+    avgLegs: 2.45,
+    shortON_pct: 7,
+    baseLateMins: 18*60,
+    baseEarlyMins: 10*60,
+    baseSitHrs: 2.41,
+    baseRONMins: 11*60,
+  },
+};
+
+// Weight state
+const weights = { late: 35, early: 25, sits: 20, legs: 15, ron: 5 };
+
+function updateWeight(key, val) {
+  weights[key] = parseInt(val);
+  document.getElementById('wv-' + key).textContent = val;
+  const total = Object.values(weights).reduce((a,b)=>a+b,0);
+  const el = document.getElementById('weight-sum');
+  el.textContent = `Total: ${total} / 100`;
+  el.className = 'weight-sum ' + (total === 100 ? 'ok' : 'warn');
+}
+
+// Parse time input to minutes
+function timeToMins(str) {
+  const [h, m] = str.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function scoreColor(pct) {
+  if (pct >= 85) return { cls: 'c-green', bar: 'bg-green', grade: 'A' };
+  if (pct >= 70) return { cls: 'c-lime',  bar: 'bg-lime',  grade: 'B' };
+  if (pct >= 55) return { cls: 'c-yellow',bar: 'bg-yellow',grade: 'C' };
+  if (pct >= 40) return { cls: 'c-orange',bar: 'bg-orange',grade: 'D' };
+  return           { cls: 'c-red',   bar: 'bg-red',   grade: 'F' };
+}
+
+// Score a single category using band logic
+function scoreBand(pct, bands) {
+  for (const [lo, hi, score] of bands) {
+    if (pct >= lo && pct <= hi) return score;
+  }
+  return bands[bands.length - 1][2];
+}
+
+// Score legs using distance-from-ideal
+function scoreLegs(avg, ideal, weight) {
+  if (avg === null || avg === undefined) return 0;
+  const diff = Math.abs(avg - ideal);
+  if (diff <= 0.2) return weight;
+  if (diff <= 0.5) return Math.round(weight * 0.8);
+  if (diff <= 1.0) return Math.round(weight * 0.55);
+  if (diff <= 1.5) return Math.round(weight * 0.3);
+  return Math.round(weight * 0.1);
+}
+
+function runScoring() {
+  const total = Object.values(weights).reduce((a,b)=>a+b,0);
+  if (total !== 100) {
+    alert(`Weights must sum to 100. Currently: ${total}`);
+    return;
+  }
+
+  const lateMins  = timeToMins(document.getElementById('pref-late').value);
+  const earlyMins = timeToMins(document.getElementById('pref-early').value);
+  const sitHrs    = parseFloat(document.getElementById('pref-sit').value);
+  const idealLegs = parseFloat(document.getElementById('pref-legs').value);
+  const ronHrs    = parseFloat(document.getElementById('pref-ron').value);
+  const ronMins   = ronHrs * 60;
+
+  const results = [];
+
+  for (const [code, d] of Object.entries(BASE_DATA)) {
+    // Each metric: adjust the base's survey pct by shifting the threshold.
+    // More tolerant threshold → fewer trips flagged → better score.
+    // Less tolerant → more trips flagged → worse score.
+
+    // LATE: user's threshold vs base threshold. If user is more lenient (+), fewer trips get flagged.
+    const lateDeltaMins = lateMins - d.baseLateMins;
+    const adjLate = Math.max(0, Math.min(100, d.lateReleases_pct - lateDeltaMins * 0.3));
+
+    // EARLY: user's threshold vs base. If user threshold is later (more lenient), fewer early flags.
+    const earlyDeltaMins = earlyMins - d.baseEarlyMins;
+    const adjEarly = Math.max(0, Math.min(100, d.earlyCheckins_pct - earlyDeltaMins * 0.4));
+
+    // SITS: user's threshold vs base. Higher threshold = more lenient = fewer long sits flagged.
+    const sitDeltaHrs = sitHrs - d.baseSitHrs;
+    const adjSits = Math.max(0, Math.min(100, d.longSits_pct - sitDeltaHrs * 15));
+
+    // RON: user's threshold vs base. Lower threshold = more lenient.
+    const ronDeltaMins = ronMins - d.baseRONMins;
+    const adjRON = Math.max(0, Math.min(100, d.shortON_pct + ronDeltaMins * 0.05));
+
+    // --- Score each dimension into 0-weight scale ---
+    // Generic band logic scaled to user weight
+    const w = weights;
+
+    // Late score
+    const lateBands = [
+      [0,10,w.late], [10,20,Math.round(w.late*0.8)], [20,35,Math.round(w.late*0.57)],
+      [35,50,Math.round(w.late*0.28)], [50,Infinity,0]
+    ];
+    const lateScore = scoreBand(adjLate, lateBands);
+
+    // Early score
+    const earlyBands = [
+      [0,15,w.early], [15,30,Math.round(w.early*0.8)], [30,45,Math.round(w.early*0.56)],
+      [45,60,Math.round(w.early*0.28)], [60,Infinity,0]
+    ];
+    const earlyScore = scoreBand(adjEarly, earlyBands);
+
+    // Sits score
+    const sitsBands = [
+      [0,15,w.sits], [15,25,Math.round(w.sits*0.8)], [25,40,Math.round(w.sits*0.6)],
+      [40,55,Math.round(w.sits*0.3)], [55,Infinity,0]
+    ];
+    const sitsScore = scoreBand(adjSits, sitsBands);
+
+    // Legs score
+    const legsScore = scoreLegs(d.avgLegs, idealLegs, w.legs);
+
+    // RON score
+    const ronBands = [
+      [0,10,w.ron], [10,20,Math.round(w.ron*0.8)], [20,30,Math.round(w.ron*0.6)],
+      [30,40,Math.round(w.ron*0.4)], [40,Infinity,0]
+    ];
+    const ronScore = scoreBand(adjRON, ronBands);
+
+    const totalScore = lateScore + earlyScore + sitsScore + legsScore + ronScore;
+
+    results.push({
+      code,
+      name: d.name,
+      total: totalScore,
+      metrics: {
+        late:  { score: lateScore,  max: w.late,  pct: adjLate,  label: 'Late Releases' },
+        early: { score: earlyScore, max: w.early, pct: adjEarly, label: 'Early Check-Ins' },
+        sits:  { score: sitsScore,  max: w.sits,  pct: adjSits,  label: 'Long Sits' },
+        legs:  { score: legsScore,  max: w.legs,  avg: d.avgLegs, label: 'Legs/Day' },
+        ron:   { score: ronScore,   max: w.ron,   pct: adjRON,   label: 'Short Overnights' },
+      }
+    });
+  }
+
+  results.sort((a,b) => b.total - a.total);
+  renderResults(results, { lateMins, earlyMins, sitHrs, idealLegs, ronHrs });
+}
+
+function formatTime(mins) {
+  const h = Math.floor(mins/60);
+  const m = mins % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+function renderResults(results, prefs) {
+  const el = document.getElementById('results');
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Ticker
+  const tickerStr = results.map(r => `${r.code} ${r.total}/100`).join('  ◆  ');
+  const doubled = tickerStr + '  ◆  ' + tickerStr + '  ◆  ';
+  document.getElementById('ticker-text').textContent = doubled;
+
+  // Winner callout
+  const winner = results[0];
+  const wc = scoreColor(winner.total);
+  document.getElementById('winner-callout').innerHTML = `
+    <div>
+      <div class="winner-label">▶ Optimal Base for Your Preferences</div>
+      <div class="winner-base">${winner.code}</div>
+      <div class="winner-score">${winner.name} — ${winner.total}/100</div>
+    </div>
+    <div class="winner-right">
+      <div class="winner-grade ${wc.cls}">${wc.grade}</div>
+    </div>
+  `;
+
+  // Leaderboard
+  let lbHtml = `
+    <div class="lb-row lb-header">
+      <div>#</div>
+      <div>Base</div>
+      <div>Score Bar</div>
+      <div style="text-align:right">Score</div>
+      <div style="text-align:right">Grade</div>
+    </div>
+  `;
+  results.forEach((r, i) => {
+    const c = scoreColor(r.total);
+    lbHtml += `
+      <div class="lb-row">
+        <div class="lb-rank ${i===0?'gold'':''}">${i+1}</div>
+        <div class="lb-base">${r.code}</div>
+        <div class="lb-bar"><div class="lb-fill ${c.bar}" style="width:${r.total}%"></div></div>
+        <div class="lb-score ${c.cls}">${r.total}</div>
+        <div class="lb-grade ${c.cls}">${c.grade}</div>
+      </div>
+    `;
+  });
+  document.getElementById('leaderboard').innerHTML = lbHtml;
+
+  // Base cards
+  let cardsHtml = '';
+  results.forEach((r, i) => {
+    const c = scoreColor(r.total);
+    const rankClass = i < 3 ? `rank-${i+1}` : '';
+    const rankBadge = i < 3 ? `<div class="rank-badge">#${i+1}</div>` : '';
+
+    const metricOrder = ['late','early','sits','legs','ron'];
+    let metricRows = '';
+    metricOrder.forEach(key => {
+      const m = r.metrics[key];
+      if (!m || m.max === 0) return;
+      const fillPct = Math.round(100 * m.score / m.max);
+      const mc = scoreColor(fillPct);
+      const detail = key === 'legs'
+        ? `avg ${m.avg?.toFixed(1)} / ideal ${prefs.idealLegs}`
+        : `${m.pct?.toFixed(0)}% flagged`;
+      metricRows += `
+        <div class="metric-row">
+          <div class="metric-name">${m.label}</div>
+          <div class="metric-bar"><div class="metric-bar-fill ${mc.bar}" style="width:${fillPct}%"></div></div>
+          <div class="metric-score ${mc.cls}">${m.score}/${m.max}</div>
+        </div>
+      `;
+    });
+
+    cardsHtml += `
+      <div class="base-card ${rankClass}">
+        ${rankBadge}
+        <div class="base-card-header">
+          <div class="base-code">${r.code}</div>
+          <div class="base-total ${c.cls}">${r.total}<span style="font-size:16px;color:var(--text-dim)">/100</span></div>
+        </div>
+        <div class="base-score-bar">
+          <div class="base-score-fill ${c.bar}" style="width:${r.total}%"></div>
+        </div>
+        <div class="base-metrics">${metricRows}</div>
+      </div>
+    `;
+  });
+  document.getElementById('base-cards').innerHTML = cardsHtml;
+}
+
+// Init weight display
+updateWeight('late', 35);
+updateWeight('early', 25);
+updateWeight('sits', 20);
+updateWeight('legs', 15);
+updateWeight('ron', 5);
+document.getElementById('weight-sum').className = 'weight-sum ok';
+</script>
+</body>
+</html>
