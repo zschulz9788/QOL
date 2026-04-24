@@ -232,7 +232,7 @@ footer { border-top: 1px solid var(--border); text-align: center; padding: 20px;
     </div>
     <div class="month-hint">
       Reads PDFs directly from your GitHub repo.<br>
-      Folder structure: <code>pairings/May2025/AA_Package.pdf</code> &nbsp;·&nbsp; <code>DL_Package.pdf</code> &nbsp;·&nbsp; <code>UA_Package.pdf</code><br>
+      PDFs live in your <code>pairings/</code> folder. Current filenames: <code>May AA Package.pdf</code> &nbsp;·&nbsp; <code>May DL Package.pdf</code> &nbsp;·&nbsp; <code>May UA Package.pdf</code><br>
       To add a new month: upload the 3 PDFs and add one line to <code>pairings/index.json</code>.
     </div>
   </div>
@@ -657,6 +657,7 @@ async function runAnalysis() {
 
   const folder = document.getElementById('month-select').value;
   if (folder === null) { alert('Please select a month.'); return; }
+
   const lateMins  = timeInputToMins('pref-late');
   const earlyMins = timeInputToMins('pref-early');
   const sitMins   = parseFloat(document.getElementById('pref-sit').value) * 60;
