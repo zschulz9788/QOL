@@ -670,11 +670,11 @@ async function runAnalysis() {
   document.getElementById('progress-log').innerHTML = '';
   document.getElementById('run-btn').disabled = true;
 
-  const PDF_FILES = ['AA_Package.pdf','DL_Package.pdf','UA_Package.pdf'];
+  const PDF_FILES = ['May AA Package.pdf','May DL Package.pdf','May UA Package.pdf'];
   const baseData  = {};
 
   for (const file of PDF_FILES) {
-    const url = `pairings/${folder}/${file}`;
+    const url = `pairings/${file}`;
     log(`Fetching ${file} ...`, 'log-info');
     try {
       const text   = await extractTextFromPDF(url);
