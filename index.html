@@ -476,86 +476,78 @@ function extractAllBaseBlocks(pdfText) {
   return blocks;
 }
 
-// ── FLIGHT + METRIC EXTRACTION (port of extract_flights_from_block) ──
+// ── FLIGHT + METRIC EXTRACTION ────────────────────────────────
+// PDF.js adds spaces: "FR 4566 BOS - JFK 0600 0720", "D - END: 1551L", "REPT: 0515L"
 function extractFlightsFromBlock(blockText) {
-  const flightRe  = /[A-Z]{2}\s*\d+\s+[A-Z]{3}-[A-Z]{3}\s+\d{3,4}\s+\d{3,4}/g;
-  const flights   = blockText.match(flightRe) || [];
   const sits = [], overnights = [], checkins = [], releases = [], legs = [];
 
-  // Day-1 report times (preferred check-in)
-  const day1Re = /DAY\s*0?1\s+REPORT\s+(\d{3,4})/gi;
-  let m;
-  while ((m = day1Re.exec(blockText)) !== null) {
-    const mins = timeToMinutes(m[1]);
-    if (mins !== null) checkins.push(mins);
+  // FLIGHT TIMES: match "XX 1234 AAA - BBB 0600 0720" (spaces around hyphen)
+  const flightRe = /[A-Z]{2}\s+\d+\s+[A-Z]{3}\s*-\s*[A-Z]{3}\s+(\d{3,4})\s+(\d{3,4})/g;
+  const flightTimes = [];
+  let fm;
+  while ((fm = flightRe.exec(blockText)) !== null) {
+    const dep = timeToMinutes(fm[1]);
+    const arr = timeToMinutes(fm[2]);
+    if (dep !== null && arr !== null) flightTimes.push({ dep, arr, index: fm.index });
   }
 
-  // Fallback: first departure of each pairing chunk
-  if (checkins.length === 0) {
-    const chunks = blockText.split(/(?=[A-Z]\d{4}\b|[A-Z]{2}\d{4}\b)/);
-    for (const chunk of chunks) {
-      const fs = chunk.match(flightRe);
-      if (!fs) continue;
-      const parts = fs[0].split(/\s+/);
-      if (parts.length >= 5) {
-        const dep = timeToMinutes(parts[3]);
-        if (dep !== null) checkins.push(dep);
-      }
+  // RELEASE TIMES: "D - END: 1551L" (PDF.js spaces around hyphen)
+  const dEndRe = /D\s*-\s*END:\s*(\d{3,4})L/g;
+  let dm;
+  const dEndPositions = [];
+  while ((dm = dEndRe.exec(blockText)) !== null) {
+    const mins = timeToMinutes(dm[1]);
+    if (mins !== null) {
+      releases.push(mins);
+      dEndPositions.push(dm.index);
     }
   }
 
-  // Sit times
-  let prevArr = null;
-  for (const f of flights) {
-    const p = f.split(/\s+/);
-    if (p.length < 5) continue;
-    const dep = timeToMinutes(p[3]);
-    const arr = timeToMinutes(p[4]);
-    if (prevArr !== null && dep !== null) {
-      const sit = dep - prevArr;
+  // CHECK-INS: "REPT: 0515L" — first one in the block = day-1 check-in
+  const reptRe = /REPT:\s*(\d{3,4})L/g;
+  let rm;
+  const reptTimes = [];
+  while ((rm = reptRe.exec(blockText)) !== null) {
+    const mins = timeToMinutes(rm[1]);
+    if (mins !== null) reptTimes.push(mins);
+  }
+  if (reptTimes.length > 0) checkins.push(reptTimes[0]);
+
+  // Split flights into duty days using D-END positions
+  const dutyDays = [];
+  let dayFlights = [];
+  let dIdx = 0;
+  for (const ft of flightTimes) {
+    if (dEndPositions[dIdx] !== undefined && ft.index > dEndPositions[dIdx]) {
+      if (dayFlights.length > 0) dutyDays.push(dayFlights);
+      dayFlights = [];
+      dIdx++;
+    }
+    dayFlights.push(ft);
+  }
+  if (dayFlights.length > 0) dutyDays.push(dayFlights);
+
+  for (const day of dutyDays) {
+    // Legs per duty day
+    if (day.length > 0) legs.push(day.length);
+    // Sits within a duty day
+    for (let i = 1; i < day.length; i++) {
+      const sit = day[i].dep - day[i-1].arr;
       if (sit > 0 && sit < 600) sits.push(sit);
     }
-    if (arr !== null) prevArr = arr;
   }
 
-  // Overnight windows
-  prevArr = null;
-  for (const f of flights) {
-    const p = f.split(/\s+/);
-    if (p.length < 5) continue;
-    const dep = timeToMinutes(p[3]);
-    const arr = timeToMinutes(p[4]);
-    if (prevArr !== null && dep !== null && dep + 60 < prevArr) {
-      const on = (1440 - prevArr) + dep;
-      if (on > 0 && on < 1440) overnights.push(on);
-    }
-    if (arr !== null) prevArr = arr;
-  }
-
-  // Legs per duty day
-  const flightPositions = [];
-  const fpRe = /[A-Z]{2}\s*\d+\s+[A-Z]{3}-[A-Z]{3}/g;
-  let fm;
-  while ((fm = fpRe.exec(blockText)) !== null) flightPositions.push(fm.index);
-  const dEndPositions = [];
-  const deRe = /D-END:/g;
-  let dm;
-  while ((dm = deRe.exec(blockText)) !== null) dEndPositions.push(dm.index);
-  if (dEndPositions.length > 0) {
-    let startIdx = 0;
-    for (const end of dEndPositions) {
-      const count = flightPositions.filter(fp => fp > startIdx && fp < end).length;
-      if (count > 0) legs.push(count);
-      startIdx = end;
-    }
-  }
-
-  // Release times
-  const relRe = /D-END:\s*(\d{3,4})L/g;
-  let rm;
-  while ((rm = relRe.exec(blockText)) !== null) {
-    const mins = timeToMinutes(rm[1]);
-    if (mins !== null) releases.push(mins);
+  // Overnights: time between last arr of one duty day and first dep of next
+  for (let d = 1; d < dutyDays.length; d++) {
+    const prev = dutyDays[d-1];
+    const curr = dutyDays[d];
+    if (!prev.length || !curr.length) continue;
+    const lastArr = prev[prev.length-1].arr;
+    const nextDep = curr[0].dep;
+    const on = nextDep < lastArr
+      ? (1440 - lastArr) + nextDep   // crossed midnight
+      : nextDep - lastArr;           // same calendar day
+    if (on > 60 && on < 1440) overnights.push(on);
   }
 
   return { sits, overnights, checkins, releases, legs };
