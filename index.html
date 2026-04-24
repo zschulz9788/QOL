@@ -656,8 +656,7 @@ async function runAnalysis() {
   if (weightTotal !== 100) { alert(`Weights must sum to 100. Currently: ${weightTotal}`); return; }
 
   const folder = document.getElementById('month-select').value;
-  if (!folder) { alert('Please select a month.'); return; }
-
+  if (folder === null) { alert('Please select a month.'); return; }
   const lateMins  = timeInputToMins('pref-late');
   const earlyMins = timeInputToMins('pref-early');
   const sitMins   = parseFloat(document.getElementById('pref-sit').value) * 60;
