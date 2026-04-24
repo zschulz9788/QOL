@@ -3,636 +3,273 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QOL Impact Index — Base Preference Calculator</title>
+<title>QOL Impact Index</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-  :root {
-    --bg: #0a0c0f;
-    --surface: #111418;
-    --surface2: #181c22;
-    --border: #2a2f38;
-    --amber: #f5a623;
-    --amber-dim: #7a5211;
-    --green: #39d98a;
-    --green-dim: #1a5c3a;
-    --red: #e05252;
-    --orange: #f07c3a;
-    --yellow: #f5d020;
-    --text: #d4dbe8;
-    --text-dim: #5a6475;
-    --text-muted: #3a424f;
-    --mono: 'Share Tech Mono', monospace;
-    --sans: 'Barlow Condensed', sans-serif;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* SCANLINE OVERLAY */
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,0.07) 2px,
-      rgba(0,0,0,0.07) 4px
-    );
-    pointer-events: none;
-    z-index: 9999;
-  }
-
-  header {
-    border-bottom: 1px solid var(--border);
-    padding: 20px 40px;
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    background: var(--surface);
-  }
-
-  .logo-mark {
-    width: 44px;
-    height: 44px;
-    border: 2px solid var(--amber);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--mono);
-    color: var(--amber);
-    font-size: 13px;
-    letter-spacing: 1px;
-    flex-shrink: 0;
-  }
-
-  .header-titles h1 {
-    font-size: 28px;
-    font-weight: 900;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    line-height: 1;
-    color: #fff;
-  }
-
-  .header-titles p {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-dim);
-    letter-spacing: 2px;
-    margin-top: 4px;
-    text-transform: uppercase;
-  }
-
-  .status-dot {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--green);
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 36px 24px 80px;
-  }
-
-  .section-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--amber);
-    border-bottom: 1px solid var(--amber-dim);
-    padding-bottom: 6px;
-    margin-bottom: 20px;
-  }
-
-  /* PREF PANEL */
-  .pref-panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 28px 32px;
-    margin-bottom: 36px;
-  }
-
-  .pref-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 28px;
-    margin-bottom: 28px;
-  }
-
-  .pref-field {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .pref-field label {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-  }
-
-  .pref-field .hint {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text-muted);
-    margin-top: -4px;
-  }
-
-  .pref-field input[type="time"],
-  .pref-field input[type="number"] {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--amber);
-    font-family: var(--mono);
-    font-size: 18px;
-    padding: 10px 14px;
-    outline: none;
-    width: 100%;
-    transition: border-color 0.2s;
-    -webkit-appearance: none;
-  }
-
-  .pref-field input:focus {
-    border-color: var(--amber);
-  }
-
-  input[type="number"]::-webkit-inner-spin-button,
-  input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
-
-  .pref-field .range-display {
-    font-family: var(--mono);
-    font-size: 22px;
-    color: var(--amber);
-    padding: 6px 0;
-  }
-
-  input[type="range"] {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 4px;
-    background: var(--border);
-    outline: none;
-    cursor: pointer;
-  }
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    background: var(--amber);
-    border-radius: 50%;
-    cursor: pointer;
-  }
-
-  .weight-row {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .weight-row label {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    display: flex;
-    justify-content: space-between;
-  }
-  .weight-row label span {
-    font-family: var(--mono);
-    color: var(--amber);
-  }
-
-  .weights-section {
-    border-top: 1px solid var(--border);
-    padding-top: 24px;
-  }
-
-  .weights-label {
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin-bottom: 16px;
-    font-family: var(--mono);
-  }
-
-  .weights-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin-bottom: 18px;
-  }
-
-  .weight-sum {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-dim);
-    text-align: right;
-  }
-
-  .weight-sum.ok { color: var(--green); }
-  .weight-sum.warn { color: var(--red); }
-
-  .run-btn {
-    display: block;
-    width: 100%;
-    margin-top: 24px;
-    padding: 16px;
-    background: transparent;
-    border: 2px solid var(--amber);
-    color: var(--amber);
-    font-family: var(--sans);
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .run-btn::before {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%; width: 100%; height: 100%;
-    background: var(--amber);
-    transition: left 0.25s ease;
-    z-index: -1;
-  }
-
-  .run-btn:hover {
-    color: var(--bg);
-    background: var(--amber);
-  }
-
-  .run-btn:hover::before { left: 0; }
-
-  /* RESULTS */
-  #results { display: none; }
-
-  .results-intro {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 28px;
-    letter-spacing: 1px;
-  }
-
-  .base-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 20px;
-    margin-bottom: 48px;
-  }
-
-  .base-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 24px;
-    position: relative;
-    cursor: pointer;
-    transition: border-color 0.2s;
-  }
-
-  .base-card.rank-1 { border-color: var(--amber); }
-  .base-card.rank-2 { border-color: #666; }
-  .base-card.rank-3 { border-color: #555; }
-
-  .base-card:hover { border-color: var(--amber); }
-
-  .base-card .rank-badge {
-    position: absolute;
-    top: -1px; right: -1px;
-    background: var(--amber);
-    color: var(--bg);
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: bold;
-    padding: 3px 8px;
-    letter-spacing: 1px;
-  }
-  .base-card.rank-1 .rank-badge { background: var(--amber); }
-  .base-card.rank-2 .rank-badge { background: #888; }
-  .base-card.rank-3 .rank-badge { background: #666; }
-
-  .base-card-header {
-    display: flex;
-    align-items: baseline;
-    gap: 14px;
-    margin-bottom: 16px;
-  }
-
-  .base-code {
-    font-size: 40px;
-    font-weight: 900;
-    letter-spacing: 2px;
-    line-height: 1;
-    color: #fff;
-  }
-
-  .base-total {
-    font-family: var(--mono);
-    font-size: 32px;
-    font-weight: bold;
-    line-height: 1;
-  }
-
-  .base-score-bar {
-    height: 6px;
-    background: var(--border);
-    margin-bottom: 16px;
-    position: relative;
-  }
-
-  .base-score-fill {
-    height: 100%;
-    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
-  }
-
-  .base-metrics {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-  }
-
-  .metric-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
-
-  .metric-name {
-    flex: 1;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    font-size: 11px;
-    letter-spacing: 1px;
-  }
-
-  .metric-score {
-    font-family: var(--mono);
-    font-size: 13px;
-    width: 52px;
-    text-align: right;
-  }
-
-  .metric-bar {
-    width: 60px;
-    height: 3px;
-    background: var(--border);
-    position: relative;
-  }
-
-  .metric-bar-fill {
-    height: 100%;
-    position: absolute;
-    top: 0; left: 0;
-  }
-
-  /* LEADERBOARD TABLE */
-  .leaderboard {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    overflow: hidden;
-    margin-bottom: 36px;
-  }
-
-  .lb-row {
-    display: grid;
-    grid-template-columns: 36px 80px 1fr 80px 80px;
-    gap: 16px;
-    align-items: center;
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    transition: background 0.15s;
-  }
-
-  .lb-row:hover { background: var(--surface2); }
-  .lb-row.lb-header {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    background: var(--bg);
-    cursor: default;
-  }
-  .lb-row:last-child { border-bottom: none; }
-
-  .lb-rank { color: var(--text-dim); font-family: var(--mono); font-size: 12px; }
-  .lb-rank.gold { color: var(--amber); }
-  .lb-base { font-size: 18px; font-weight: 900; letter-spacing: 2px; color: #fff; }
-  .lb-bar { position: relative; height: 4px; background: var(--border); }
-  .lb-fill { height: 100%; position: absolute; }
-  .lb-score { font-family: var(--mono); font-size: 16px; text-align: right; }
-  .lb-grade { font-family: var(--mono); font-size: 13px; text-align: right; }
-
-  /* Color coding */
-  .c-green { color: #39d98a; }
-  .c-lime { color: #a1c935; }
-  .c-yellow { color: #ffc107; }
-  .c-orange { color: #f07c3a; }
-  .c-red { color: #e05252; }
-
-  .bg-green { background: #39d98a; }
-  .bg-lime { background: #a1c935; }
-  .bg-yellow { background: #ffc107; }
-  .bg-orange { background: #f07c3a; }
-  .bg-red { background: #e05252; }
-
-  /* TICKER */
-  .ticker-bar {
-    background: var(--bg);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    padding: 8px 0;
-    overflow: hidden;
-    margin-bottom: 36px;
-    white-space: nowrap;
-  }
-
-  .ticker-inner {
-    display: inline-block;
-    animation: ticker 20s linear infinite;
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: 2px;
-    color: var(--text-muted);
-  }
-
-  @keyframes ticker {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
-
-  /* CALLOUT */
-  .winner-callout {
-    background: linear-gradient(135deg, rgba(245,166,35,0.1) 0%, transparent 60%);
-    border: 1px solid var(--amber);
-    padding: 20px 28px;
-    margin-bottom: 28px;
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    animation: fadeIn 0.5s ease;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .winner-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--amber);
-    margin-bottom: 6px;
-  }
-
-  .winner-base {
-    font-size: 52px;
-    font-weight: 900;
-    color: var(--amber);
-    letter-spacing: 4px;
-    line-height: 1;
-  }
-
-  .winner-score {
-    font-family: var(--mono);
-    font-size: 16px;
-    color: var(--text-dim);
-    margin-top: 4px;
-  }
-
-  .winner-right {
-    margin-left: auto;
-    text-align: right;
-  }
-
-  .winner-grade {
-    font-size: 72px;
-    font-weight: 900;
-    line-height: 1;
-  }
-
-  footer {
-    border-top: 1px solid var(--border);
-    text-align: center;
-    padding: 20px;
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text-muted);
-    letter-spacing: 2px;
-  }
-
-  @media (max-width: 600px) {
-    header { padding: 16px 20px; }
-    main { padding: 24px 16px 60px; }
-    .pref-grid { grid-template-columns: 1fr 1fr; }
-    .base-cards { grid-template-columns: 1fr; }
-    .lb-row { grid-template-columns: 28px 60px 1fr 60px; gap: 10px; }
-    .lb-grade { display: none; }
-  }
+:root {
+  --bg: #0a0c0f;
+  --surface: #111418;
+  --surface2: #181c22;
+  --border: #2a2f38;
+  --amber: #f5a623;
+  --amber-dim: #7a5211;
+  --green: #39d98a;
+  --red: #e05252;
+  --orange: #f07c3a;
+  --yellow: #ffc107;
+  --lime: #a1c935;
+  --text: #d4dbe8;
+  --text-dim: #5a6475;
+  --text-muted: #3a424f;
+  --mono: 'Share Tech Mono', monospace;
+  --sans: 'Barlow Condensed', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px);
+  pointer-events: none; z-index: 9999;
+}
+
+/* HEADER */
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 16px 36px;
+  display: flex; align-items: center; gap: 18px;
+  background: var(--surface);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo {
+  width: 40px; height: 40px;
+  border: 2px solid var(--amber); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); color: var(--amber); font-size: 11px; flex-shrink: 0;
+}
+.header-text h1 { font-size: 26px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #fff; line-height: 1; }
+.header-text p { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 2px; margin-top: 3px; }
+.hdot { margin-left: auto; display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* LAYOUT */
+main { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+.section-label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--amber);
+  border-bottom: 1px solid var(--amber-dim);
+  padding-bottom: 6px; margin-bottom: 20px;
+}
+.panel { background: var(--surface); border: 1px solid var(--border); padding: 28px 32px; margin-bottom: 24px; }
+
+/* MONTH SELECT */
+.month-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.month-row label { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); }
+select#month-select {
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--amber); font-family: var(--mono); font-size: 15px;
+  padding: 9px 14px; outline: none; cursor: pointer; min-width: 200px;
+}
+select#month-select:focus { border-color: var(--amber); }
+.month-hint { font-family: var(--mono); font-size: 10px; color: var(--text-muted); margin-top: 12px; line-height: 1.9; }
+.month-hint code { color: var(--amber); background: rgba(245,166,35,.1); padding: 1px 5px; }
+
+/* PREFERENCES */
+.pref-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 22px; margin-bottom: 26px; }
+.pref-field { display: flex; flex-direction: column; gap: 6px; }
+.pref-field label { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
+.pref-field .hint { font-family: var(--mono); font-size: 10px; color: var(--text-muted); }
+.pref-field input[type="time"],
+.pref-field input[type="number"] {
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--amber); font-family: var(--mono); font-size: 18px;
+  padding: 10px 12px; outline: none; width: 100%; transition: border-color .2s;
+}
+.pref-field input:focus { border-color: var(--amber); }
+
+/* WEIGHTS */
+.weights-section { border-top: 1px solid var(--border); padding-top: 22px; }
+.weights-label { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 14px; }
+.weights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 10px; }
+.weight-row { display: flex; flex-direction: column; gap: 5px; }
+.weight-row label { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); display: flex; justify-content: space-between; }
+.weight-row label span { font-family: var(--mono); color: var(--amber); }
+input[type="range"] { -webkit-appearance: none; width: 100%; height: 3px; background: var(--border); outline: none; cursor: pointer; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: var(--amber); border-radius: 50%; }
+.weight-sum { font-family: var(--mono); font-size: 12px; color: var(--text-dim); text-align: right; margin-top: 4px; }
+.weight-sum.ok { color: var(--green); }
+.weight-sum.warn { color: var(--red); }
+
+/* RUN BUTTON */
+.run-btn {
+  display: block; width: 100%; margin-top: 22px; padding: 15px;
+  background: transparent; border: 2px solid var(--amber);
+  color: var(--amber); font-family: var(--sans); font-size: 17px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase; cursor: pointer; transition: all .2s;
+}
+.run-btn:hover { background: var(--amber); color: var(--bg); }
+.run-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* PROGRESS */
+#progress-panel { display: none; margin-bottom: 24px; }
+.progress-log {
+  font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+  line-height: 2.1; max-height: 220px; overflow-y: auto;
+  padding: 14px 16px; background: var(--bg); border: 1px solid var(--border);
+}
+.log-ok   { color: var(--green); }
+.log-warn { color: var(--yellow); }
+.log-err  { color: var(--red); }
+.log-info { color: var(--amber); }
+
+/* RESULTS */
+#results { display: none; }
+.ticker-bar { background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 7px 0; overflow: hidden; margin-bottom: 28px; white-space: nowrap; }
+.ticker-inner { display: inline-block; animation: ticker 24s linear infinite; font-family: var(--mono); font-size: 11px; letter-spacing: 2px; color: var(--text-muted); }
+@keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+.winner-callout {
+  background: linear-gradient(135deg, rgba(245,166,35,.1) 0%, transparent 60%);
+  border: 1px solid var(--amber); padding: 20px 28px; margin-bottom: 24px;
+  display: flex; align-items: center; gap: 24px; animation: fadeUp .5s ease;
+}
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.winner-label { font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--amber); margin-bottom: 5px; }
+.winner-base { font-size: 50px; font-weight: 900; color: var(--amber); letter-spacing: 4px; line-height: 1; }
+.winner-sub { font-family: var(--mono); font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+.winner-grade { font-size: 66px; font-weight: 900; line-height: 1; margin-left: auto; }
+
+/* LEADERBOARD */
+.leaderboard { background: var(--surface); border: 1px solid var(--border); overflow: hidden; margin-bottom: 32px; }
+.lb-row {
+  display: grid; grid-template-columns: 32px 72px 1fr 68px 58px;
+  gap: 12px; align-items: center;
+  padding: 11px 20px; border-bottom: 1px solid var(--border); transition: background .15s;
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-row:hover:not(.lb-header) { background: var(--surface2); }
+.lb-header { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; background: var(--bg); cursor: default; }
+.lb-rank { font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+.lb-rank.gold { color: var(--amber); font-weight: bold; }
+.lb-base { font-size: 20px; font-weight: 900; letter-spacing: 2px; color: #fff; }
+.lb-bar { position: relative; height: 4px; background: var(--border); }
+.lb-fill { height: 100%; position: absolute; top: 0; left: 0; }
+.lb-score { font-family: var(--mono); font-size: 15px; text-align: right; }
+.lb-grade { font-family: var(--mono); font-size: 12px; text-align: right; }
+
+/* BASE CARDS */
+.base-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; margin-bottom: 48px; }
+.base-card {
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 22px; position: relative; transition: border-color .2s; animation: fadeUp .4s ease;
+}
+.base-card.rank-1 { border-color: var(--amber); }
+.base-card.rank-2 { border-color: #777; }
+.base-card.rank-3 { border-color: #555; }
+.base-card:hover { border-color: var(--amber); }
+.rank-badge {
+  position: absolute; top: -1px; right: -1px;
+  background: var(--amber); color: var(--bg);
+  font-family: var(--mono); font-size: 10px; font-weight: bold;
+  padding: 3px 8px; letter-spacing: 1px;
+}
+.rank-2 .rank-badge { background: #888; }
+.rank-3 .rank-badge { background: #666; }
+.card-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.card-code { font-size: 38px; font-weight: 900; letter-spacing: 2px; line-height: 1; color: #fff; }
+.card-total { font-family: var(--mono); font-size: 30px; font-weight: bold; line-height: 1; }
+.card-total sup { font-size: 14px; color: var(--text-dim); }
+.card-bar { height: 5px; background: var(--border); margin-bottom: 16px; }
+.card-bar-fill { height: 100%; }
+.metric-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.metric-name { flex: 1; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-size: 11px; }
+.metric-mini-bar { width: 56px; height: 3px; background: var(--border); position: relative; }
+.metric-mini-fill { height: 100%; position: absolute; top: 0; left: 0; }
+.metric-pts { font-family: var(--mono); font-size: 12px; width: 48px; text-align: right; }
+.metric-detail { font-family: var(--mono); font-size: 10px; color: var(--text-muted); width: 110px; text-align: right; }
+
+/* COLORS */
+.c-green{color:#39d98a;} .bg-green{background:#39d98a;}
+.c-lime{color:#a1c935;}  .bg-lime{background:#a1c935;}
+.c-yellow{color:#ffc107;}.bg-yellow{background:#ffc107;}
+.c-orange{color:#f07c3a;}.bg-orange{background:#f07c3a;}
+.c-red{color:#e05252;}   .bg-red{background:#e05252;}
+
+footer { border-top: 1px solid var(--border); text-align: center; padding: 20px; font-family: var(--mono); font-size: 10px; color: var(--text-muted); letter-spacing: 2px; }
+
+@media (max-width: 640px) {
+  header { padding: 14px 16px; }
+  main { padding: 20px 14px 60px; }
+  .pref-grid { grid-template-columns: 1fr 1fr; }
+  .base-cards { grid-template-columns: 1fr; }
+  .lb-row { grid-template-columns: 28px 58px 1fr 56px; }
+  .lb-grade { display: none; }
+}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo-mark">QOL</div>
-  <div class="header-titles">
+  <div class="logo">QOL</div>
+  <div class="header-text">
     <h1>QOL Impact Index</h1>
     <p>Base Quality-of-Life Preference Calculator</p>
   </div>
-  <div class="status-dot">
-    <div class="dot"></div>
-    SYSTEM READY
-  </div>
+  <div class="hdot"><div class="dot"></div>SYSTEM READY</div>
 </header>
 
 <main>
 
-  <!-- PREFERENCES PANEL -->
-  <div class="pref-panel">
-    <div class="section-label">// YOUR PERSONAL PREFERENCES</div>
+  <!-- STEP 1 -->
+  <div class="panel">
+    <div class="section-label">// 01 — SELECT MONTH</div>
+    <div class="month-row">
+      <label>Pairing Package:</label>
+      <select id="month-select"><option value="">— loading —</option></select>
+    </div>
+    <div class="month-hint">
+      Reads PDFs directly from your GitHub repo.<br>
+      Folder structure: <code>pairings/May2025/AA_Package.pdf</code> &nbsp;·&nbsp; <code>DL_Package.pdf</code> &nbsp;·&nbsp; <code>UA_Package.pdf</code><br>
+      To add a new month: upload the 3 PDFs and add one line to <code>pairings/index.json</code>.
+    </div>
+  </div>
 
+  <!-- STEP 2 -->
+  <div class="panel">
+    <div class="section-label">// 02 — YOUR PERSONAL THRESHOLDS</div>
     <div class="pref-grid">
-
       <div class="pref-field">
-        <label>Late Release Threshold</label>
-        <div class="hint">Trips ending after this time hurt QOL</div>
+        <label>Late Release After</label>
+        <div class="hint">Trips ending after this hurt QOL</div>
         <input type="time" id="pref-late" value="17:30">
       </div>
-
       <div class="pref-field">
-        <label>Early Check-In Threshold</label>
-        <div class="hint">Trips starting before this time hurt QOL</div>
+        <label>Early Check-In Before</label>
+        <div class="hint">Trips starting before this hurt QOL</div>
         <input type="time" id="pref-early" value="10:00">
       </div>
-
       <div class="pref-field">
-        <label>Max Sit Length (hours)</label>
+        <label>Long Sit Over (hrs)</label>
         <div class="hint">Sits longer than this feel wasted</div>
         <input type="number" id="pref-sit" value="2.36" step="0.01" min="1" max="6">
       </div>
-
       <div class="pref-field">
-        <label>Preferred Legs / Day</label>
-        <div class="hint">Your ideal average legs per duty day</div>
+        <label>Ideal Legs / Day</label>
+        <div class="hint">Your preferred avg legs per duty day</div>
         <input type="number" id="pref-legs" value="2.5" step="0.1" min="1" max="6">
       </div>
-
       <div class="pref-field">
-        <label>Min Overnight Length (hours)</label>
+        <label>Min Overnight (hrs)</label>
         <div class="hint">Overnights shorter than this feel short</div>
         <input type="number" id="pref-ron" value="11" step="0.5" min="6" max="20">
       </div>
-
     </div>
 
-    <!-- WEIGHTS -->
     <div class="weights-section">
-      <div class="weights-label">// WHAT MATTERS MOST TO YOU? (weights must total 100)</div>
+      <div class="weights-label">// WHAT MATTERS MOST TO YOU? — weights must total 100</div>
       <div class="weights-grid">
         <div class="weight-row">
           <label>Late Releases <span id="wv-late">35</span></label>
@@ -655,413 +292,524 @@
           <input type="range" id="w-ron" min="0" max="70" value="5" oninput="updateWeight('ron',this.value)">
         </div>
       </div>
-      <div class="weight-sum" id="weight-sum">Total: 100 / 100</div>
+      <div class="weight-sum ok" id="weight-sum">Total: 100 / 100</div>
     </div>
 
-    <button class="run-btn" onclick="runScoring()">▶ Calculate My QOL Rankings</button>
+    <button class="run-btn" id="run-btn" onclick="runAnalysis()">▶ Analyze Pairings &amp; Calculate Rankings</button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="progress-panel">
+    <div class="section-label">// PARSING PDFS</div>
+    <div class="progress-log" id="progress-log"></div>
   </div>
 
   <!-- RESULTS -->
   <div id="results">
-
     <div class="section-label">// SCORING RESULTS</div>
-
-    <div class="ticker-bar">
-      <div class="ticker-inner" id="ticker-text">— — —</div>
-    </div>
-
+    <div class="ticker-bar"><div class="ticker-inner" id="ticker-text">QOL IMPACT INDEX</div></div>
     <div class="winner-callout" id="winner-callout"></div>
-
     <div class="leaderboard" id="leaderboard"></div>
-
     <div class="section-label">// BASE BREAKDOWN</div>
     <div class="base-cards" id="base-cards"></div>
-
   </div>
 
 </main>
 
-<footer>QOL IMPACT INDEX — PERSONAL PREFERENCE ENGINE — FOR INFORMATIONAL USE</footer>
+<footer>QOL IMPACT INDEX · PERSONAL PREFERENCE ENGINE · FOR INFORMATIONAL USE ONLY</footer>
 
 <script>
-// ============================================================
-// BASE RAW DATA (median survey values per base)
-// Each base stores representative survey distributions:
-//   lateReleases_pct  — % of trips ending after base-default threshold
-//   earlyCheckins_pct — % of trips starting before base-default threshold
-//   longSits_pct      — % of sits over base-default threshold
-//   avgLegs           — average legs per duty day
-//   shortON_pct       — % of overnights under base-default threshold
-//
-// These are approximate survey distributions from the original tool's
-// band calibrations (the band midpoints that would yield typical scores).
-// Replace with your actual survey data for precise results.
-// ============================================================
+// ── PDF.js worker ──────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const BASE_DATA = {
+// ── BASE CONFIGS (exact port of Python BASE_CONFIGS) ───────────
+const INF = Infinity;
+const BASE_CONFIGS = {
   BOS: {
-    name: "Boston",
-    lateReleases_pct: 22,   // ~20% of trips release after 17:30
-    earlyCheckins_pct: 52,  // ~52% start before 10:00 (positive for BOS)
-    longSits_pct: 18,
-    avgLegs: 2.5,
-    shortON_pct: 8,
-    // Base-specific thresholds for reference
-    baseLateMins: 17*60+30,
-    baseEarlyMins: 10*60,
-    baseSitHrs: 2.36,
-    baseRONMins: 11*60,
+    order: ["late","early","long_sits","hard_legs","short_overnights"],
+    late:             { label:"Late Releases — Back-End Commutability",    weight:35, threshold_minutes:17*60+30, bands:[[0,10,35],[10,20,28],[20,35,20],[35,50,10],[50,INF,0]],  display:">17:30" },
+    early:            { label:"Early Check-Ins — Front-End Commutability", weight:25, threshold_minutes:10*60,    bands:[[0,15,0],[15,30,8],[30,45,15],[45,60,20],[60,INF,25]],   display:"<10:00", positive_early_alignment:true },
+    long_sits:        { label:"Long Sits — Inefficiency",                  weight:20, threshold_hours:2.36,       bands:[[0,15,20],[15,25,16],[25,40,12],[40,55,6],[55,INF,0]],   display:">2.36h" },
+    hard_legs:        { label:"Hard Pairings — Legs per Duty Day",         weight:15, ranges:[[2.3,2.7,15],[2.0,2.2,12],[2.8,3.0,12],[3.1,3.4,6],[3.4,INF,3]], low_fallback:12, display:"legs/day" },
+    short_overnights: { label:"Short Overnights — RON Length",             weight:5,  threshold_minutes:11*60,   bands:[[0,10,5],[10,20,4],[20,30,3],[30,40,2],[40,INF,0]],      display:"<11h" },
   },
   CMH: {
-    name: "Columbus",
-    lateReleases_pct: 28,
-    earlyCheckins_pct: 25,
-    longSits_pct: 20,
-    avgLegs: 3.0,
-    shortON_pct: 12,
-    baseLateMins: 18*60,
-    baseEarlyMins: 12*60,
-    baseSitHrs: 2.31,
-    baseRONMins: 11*60,
+    order: ["long_sits","short_overnights","hard_legs","late","early"],
+    long_sits:        { label:"Long Sits — Duty Efficiency",               weight:30, threshold_hours:2.31,       bands:[[0,15,30],[15,25,25],[25,40,20],[40,55,10],[55,INF,5]],  display:">2.31h" },
+    short_overnights: { label:"Short Overnights — RON Length",             weight:25, threshold_minutes:11*60,   bands:[[0,10,25],[10,20,20],[20,30,15],[30,40,10],[40,INF,5]],  display:"<11h" },
+    hard_legs:        { label:"Hard Pairings — Legs per Duty Day",         weight:20, ranges:[[2.8,3.2,20],[2.4,2.7,16],[3.3,3.6,14],[2.0,2.3,10],[3.7,4.0,8],[4.0,INF,5]], low_fallback:10, display:"legs/day" },
+    late:             { label:"Late Releases — Back-End Commutability",    weight:20, threshold_minutes:18*60,    bands:[[0,20,20],[20,40,15],[40,60,10],[60,INF,5]],             display:">18:00" },
+    early:            { label:"Early Check-Ins — Front-End Commutability", weight:5,  threshold_minutes:12*60,    bands:[[0,20,5],[20,40,3],[40,INF,1]],                          display:"<12:00" },
   },
   DCA: {
-    name: "Washington",
-    lateReleases_pct: 15,
-    earlyCheckins_pct: 20,
-    longSits_pct: 22,
-    avgLegs: 2.9,
-    shortON_pct: 10,
-    baseLateMins: 17*60+30,
-    baseEarlyMins: 10*60,
-    baseSitHrs: 2.33,
-    baseRONMins: 11*60,
+    order: ["late","long_sits","hard_legs","short_overnights","early"],
+    late:             { label:"Late Releases — Back-End Commutability",    weight:25, threshold_minutes:17*60+30, bands:[[0,10,25],[10,20,20],[20,35,15],[35,50,8],[50,INF,0]],   display:">17:30" },
+    long_sits:        { label:"Long Sits — Duty Efficiency",               weight:25, threshold_hours:2.33,       bands:[[0,15,25],[15,25,20],[25,40,15],[40,55,8],[55,INF,0]],   display:">2.33h" },
+    hard_legs:        { label:"Hard Pairings — Legs per Duty Day",         weight:20, ranges:[[2.7,3.2,20],[2.3,2.6,16],[3.3,3.6,12],[2.0,2.2,8],[3.6,INF,4]], low_fallback:8,  display:"legs/day" },
+    short_overnights: { label:"Short Overnights — RON Length",             weight:15, threshold_minutes:11*60,   bands:[[0,10,15],[10,20,12],[20,30,8],[30,40,4],[40,INF,0]],    display:"<11h" },
+    early:            { label:"Early Check-Ins — Front-End Commutability", weight:15, threshold_minutes:10*60,    bands:[[0,15,15],[15,30,12],[30,45,8],[45,60,4],[60,INF,0]],    display:"<10:00" },
   },
   EWR: {
-    name: "Newark",
-    lateReleases_pct: 20,
-    earlyCheckins_pct: 18,
-    longSits_pct: 19,
-    avgLegs: 2.5,
-    shortON_pct: 8,
-    baseLateMins: 18*60,
-    baseEarlyMins: 10*60,
-    baseSitHrs: 2.35,
-    baseRONMins: 11*60,
+    order: ["late","long_sits","early","short_overnights","hard_legs"],
+    late:             { label:"Late Releases — Back-End Commutability",    weight:30, threshold_minutes:18*60,    bands:[[0,10,30],[10,20,24],[20,35,18],[35,50,10],[50,INF,0]],  display:">18:00" },
+    long_sits:        { label:"Long Sits — Duty Efficiency",               weight:25, threshold_hours:2.35,       bands:[[0,15,25],[15,25,20],[25,40,15],[40,55,8],[55,INF,0]],   display:">2.35h" },
+    early:            { label:"Early Check-Ins — Front-End Commutability", weight:15, threshold_minutes:10*60,    bands:[[0,15,15],[15,30,12],[30,45,8],[45,60,4],[60,INF,0]],    display:"<10:00" },
+    short_overnights: { label:"Short Overnights — RON Length",             weight:15, threshold_minutes:11*60,   bands:[[0,10,15],[10,20,12],[20,30,8],[30,40,4],[40,INF,0]],    display:"<11h" },
+    hard_legs:        { label:"Hard Pairings — Legs per Duty Day",         weight:15, ranges:[[2.3,2.7,15],[2.0,2.2,12],[2.8,3.0,12],[3.1,3.4,8],[3.4,INF,4]], low_fallback:12, display:"legs/day" },
   },
   IND: {
-    name: "Indianapolis",
-    lateReleases_pct: 18,
-    earlyCheckins_pct: 15,
-    longSits_pct: 20,
-    avgLegs: 2.95,
-    shortON_pct: 6,
-    baseLateMins: 17*60+30,
-    baseEarlyMins: 10*60,
-    baseSitHrs: 2.36,
-    baseRONMins: 11*60,
+    order: ["long_sits","short_overnights","hard_legs","late","early"],
+    long_sits:        { label:"Long Sits — Duty Efficiency",               weight:30, threshold_hours:2.36,       bands:[[0,15,30],[15,25,24],[25,40,18],[40,55,10],[55,INF,0]],  display:">2.36h" },
+    short_overnights: { label:"Short Overnights — RON Length",             weight:25, threshold_minutes:11*60,   bands:[[0,10,25],[10,20,20],[20,30,14],[30,40,7],[40,INF,0]],   display:"<11h" },
+    hard_legs:        { label:"Hard Pairings — Legs per Duty Day",         weight:20, ranges:[[2.8,3.2,20],[2.4,2.7,16],[3.3,3.6,12],[2.0,2.3,8],[3.6,INF,4]], low_fallback:8,  display:"legs/day" },
+    late:             { label:"Late Releases — Back-End Commutability",    weight:15, threshold_minutes:17*60+30, bands:[[0,15,15],[15,30,12],[30,45,8],[45,60,4],[60,INF,0]],    display:">17:30" },
+    early:            { label:"Early Check-Ins — Front-End Commutability", weight:10, threshold_minutes:10*60,    bands:[[0,15,10],[15,30,8],[30,45,5],[45,60,2],[60,INF,0]],     display:"<10:00" },
   },
   LGA: {
-    name: "LaGuardia",
-    lateReleases_pct: 22,
-    earlyCheckins_pct: 22,
-    longSits_pct: 17,
-    avgLegs: 2.95,
-    shortON_pct: 7,
-    baseLateMins: 18*60,
-    baseEarlyMins: 10*60,
-    baseSitHrs: 2.39,
-    baseRONMins: 11*60,
+    order: ["late","early","long_sits","hard_legs","short_overnights"],
+    late:             { label:"Late Releases — Back-End Commutability",    weight:35, threshold_minutes:18*60,    bands:[[0,10,35],[10,20,28],[20,35,20],[35,50,10],[50,INF,0]],  display:">18:00" },
+    early:            { label:"Early Check-Ins — Front-End Commutability", weight:25, threshold_minutes:10*60,    bands:[[0,15,25],[15,30,20],[30,45,14],[45,60,7],[60,INF,0]],   display:"<10:00" },
+    long_sits:        { label:"Long Sits — Duty Efficiency",               weight:20, threshold_hours:2.39,       bands:[[0,15,20],[15,25,16],[25,40,12],[40,55,6],[55,INF,0]],   display:">2.39h" },
+    hard_legs:        { label:"Hard Pairings — Legs per Duty Day",         weight:10, ranges:[[2.8,3.2,10],[2.4,2.7,8],[3.3,3.6,6],[2.0,2.3,4],[3.6,INF,2]], low_fallback:4,   display:"legs/day" },
+    short_overnights: { label:"Short Overnights — RON Length",             weight:10, threshold_minutes:11*60,   bands:[[0,10,10],[10,20,8],[20,30,5],[30,40,2],[40,INF,0]],     display:"<11h" },
   },
   ORD: {
-    name: "Chicago O'Hare",
-    lateReleases_pct: 18,
-    earlyCheckins_pct: 20,
-    longSits_pct: 20,
-    avgLegs: 2.5,
-    shortON_pct: 8,
-    baseLateMins: 18*60+30,
-    baseEarlyMins: 10*60,
-    baseSitHrs: 2.47,
-    baseRONMins: 11*60,
+    order: ["late","long_sits","early","hard_legs","short_overnights"],
+    late:             { label:"Late Releases — Back-End Commutability",    weight:25, threshold_minutes:18*60+30, bands:[[0,10,25],[10,20,20],[20,35,15],[35,50,8],[50,INF,0]],   display:">18:30" },
+    long_sits:        { label:"Long Sits — Duty Efficiency",               weight:25, threshold_hours:2.47,       bands:[[0,15,25],[15,25,20],[25,40,15],[40,55,8],[55,INF,0]],   display:">2.47h" },
+    early:            { label:"Early Check-Ins — Front-End Commutability", weight:20, threshold_minutes:10*60,    bands:[[0,15,20],[15,30,16],[30,45,10],[45,60,5],[60,INF,0]],   display:"<10:00" },
+    hard_legs:        { label:"Hard Pairings — Legs per Duty Day",         weight:20, ranges:[[2.3,2.7,20],[2.0,2.2,16],[2.8,3.0,16],[3.1,3.4,10],[3.4,INF,5]], low_fallback:16, display:"legs/day" },
+    short_overnights: { label:"Short Overnights — RON Length",             weight:10, threshold_minutes:11*60,   bands:[[0,10,10],[10,20,8],[20,30,5],[30,40,2],[40,INF,0]],     display:"<11h" },
   },
   PHL: {
-    name: "Philadelphia",
-    lateReleases_pct: 20,
-    earlyCheckins_pct: 12,
-    longSits_pct: 22,
-    avgLegs: 2.4,
-    shortON_pct: 7,
-    baseLateMins: 18*60+30,
-    baseEarlyMins: 10*60,
-    baseSitHrs: 2.47,
-    baseRONMins: 11*60,
+    order: ["long_sits","late","hard_legs","early","short_overnights"],
+    long_sits:        { label:"Long Sits — Duty Efficiency",               weight:35, threshold_hours:2.47,       bands:[[0,15,35],[15,25,28],[25,40,20],[40,55,10],[55,INF,0]],  display:">2.47h" },
+    late:             { label:"Late Releases — Back-End Commutability",    weight:25, threshold_minutes:18*60+30, bands:[[0,10,25],[10,20,20],[20,35,15],[35,50,8],[50,INF,0]],   display:">18:30" },
+    hard_legs:        { label:"Hard Pairings — Legs per Duty Day",         weight:20, ranges:[[2.3,2.7,20],[2.0,2.2,16],[2.8,3.0,16],[3.1,3.4,10],[3.4,INF,5]], low_fallback:16, display:"legs/day" },
+    early:            { label:"Early Check-Ins — Front-End Commutability", weight:10, threshold_minutes:10*60,    bands:[[0,15,10],[15,30,8],[30,45,5],[45,60,2],[60,INF,0]],     display:"<10:00" },
+    short_overnights: { label:"Short Overnights — RON Length",             weight:10, threshold_minutes:11*60,   bands:[[0,10,10],[10,20,8],[20,30,5],[30,40,2],[40,INF,0]],     display:"<11h" },
   },
   PIT: {
-    name: "Pittsburgh",
-    lateReleases_pct: 16,
-    earlyCheckins_pct: 10,
-    longSits_pct: 14,
-    avgLegs: 2.45,
-    shortON_pct: 6,
-    baseLateMins: 18*60+30,
-    baseEarlyMins: 10*60,
-    baseSitHrs: 2.29,
-    baseRONMins: 11*60,
+    order: ["long_sits","hard_legs","late","short_overnights","early"],
+    long_sits:        { label:"Long Sits — Duty Efficiency",               weight:40, threshold_hours:2.29,       bands:[[0,15,40],[15,25,32],[25,40,22],[40,55,12],[55,INF,0]],  display:">2.29h" },
+    hard_legs:        { label:"Hard Pairings — Legs per Duty Day",         weight:25, ranges:[[2.3,2.7,25],[2.0,2.2,20],[2.8,3.0,20],[3.1,3.4,10],[3.4,INF,4]], low_fallback:20, display:"legs/day" },
+    late:             { label:"Late Releases — Back-End Commutability",    weight:20, threshold_minutes:18*60+30, bands:[[0,10,20],[10,20,16],[20,35,10],[35,50,5],[50,INF,0]],   display:">18:30" },
+    short_overnights: { label:"Short Overnights — RON Length",             weight:10, threshold_minutes:11*60,   bands:[[0,10,10],[10,20,8],[20,30,5],[30,40,2],[40,INF,0]],     display:"<11h" },
+    early:            { label:"Early Check-Ins — Front-End Commutability", weight:5,  threshold_minutes:10*60,    bands:[[0,15,5],[15,30,4],[30,45,2],[45,60,1],[60,INF,0]],      display:"<10:00" },
   },
   SDF: {
-    name: "Louisville",
-    lateReleases_pct: 18,
-    earlyCheckins_pct: 16,
-    longSits_pct: 18,
-    avgLegs: 2.45,
-    shortON_pct: 7,
-    baseLateMins: 18*60,
-    baseEarlyMins: 10*60,
-    baseSitHrs: 2.41,
-    baseRONMins: 11*60,
+    order: ["long_sits","late","hard_legs","short_overnights","early"],
+    long_sits:        { label:"Long Sits — Duty Efficiency",               weight:30, threshold_hours:2.41,       bands:[[0,15,30],[15,25,24],[25,40,18],[40,55,10],[55,INF,0]],  display:">2.41h" },
+    late:             { label:"Late Releases — Back-End Commutability",    weight:25, threshold_minutes:18*60,    bands:[[0,10,25],[10,20,20],[20,35,15],[35,50,8],[50,INF,0]],   display:">18:00" },
+    hard_legs:        { label:"Hard Pairings — Legs per Duty Day",         weight:20, ranges:[[2.3,2.7,20],[2.0,2.2,16],[2.8,3.0,16],[3.1,3.4,8],[3.4,INF,4]], low_fallback:16, display:"legs/day" },
+    short_overnights: { label:"Short Overnights — RON Length",             weight:15, threshold_minutes:11*60,   bands:[[0,10,15],[10,20,12],[20,30,8],[30,40,4],[40,INF,0]],    display:"<11h" },
+    early:            { label:"Early Check-Ins — Front-End Commutability", weight:10, threshold_minutes:10*60,    bands:[[0,15,10],[15,30,8],[30,45,5],[45,60,2],[60,INF,0]],     display:"<10:00" },
   },
 };
 
-// Weight state
-const weights = { late: 35, early: 25, sits: 20, legs: 15, ron: 5 };
-
+// ── WEIGHT STATE ───────────────────────────────────────────────
+const userWeights = { late:35, early:25, sits:20, legs:15, ron:5 };
 function updateWeight(key, val) {
-  weights[key] = parseInt(val);
+  userWeights[key] = parseInt(val);
   document.getElementById('wv-' + key).textContent = val;
-  const total = Object.values(weights).reduce((a,b)=>a+b,0);
+  const total = Object.values(userWeights).reduce((a,b)=>a+b, 0);
   const el = document.getElementById('weight-sum');
   el.textContent = `Total: ${total} / 100`;
   el.className = 'weight-sum ' + (total === 100 ? 'ok' : 'warn');
 }
 
-// Parse time input to minutes
-function timeToMins(str) {
-  const [h, m] = str.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function scoreColor(pct) {
-  if (pct >= 85) return { cls: 'c-green', bar: 'bg-green', grade: 'A' };
-  if (pct >= 70) return { cls: 'c-lime',  bar: 'bg-lime',  grade: 'B' };
-  if (pct >= 55) return { cls: 'c-yellow',bar: 'bg-yellow',grade: 'C' };
-  if (pct >= 40) return { cls: 'c-orange',bar: 'bg-orange',grade: 'D' };
-  return           { cls: 'c-red',   bar: 'bg-red',   grade: 'F' };
-}
-
-// Score a single category using band logic
-function scoreBand(pct, bands) {
-  for (const [lo, hi, score] of bands) {
-    if (pct >= lo && pct <= hi) return score;
+// ── LOAD MONTH LIST ────────────────────────────────────────────
+async function loadMonths() {
+  const sel = document.getElementById('month-select');
+  try {
+    const res = await fetch('pairings/index.json');
+    if (!res.ok) throw new Error('not found');
+    const months = await res.json();
+    sel.innerHTML = '';
+    months.forEach((m, i) => {
+      const opt = document.createElement('option');
+      opt.value = m.folder;
+      opt.textContent = m.label;
+      if (i === months.length - 1) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    sel.innerHTML = '<option value="">⚠ pairings/index.json not found</option>';
   }
-  return bands[bands.length - 1][2];
+}
+loadMonths();
+
+// ── TIME HELPERS (port of Python time_to_minutes) ──────────────
+function timeToMinutes(t) {
+  t = String(t).replace(':','').trim();
+  if (t.length === 3 && /^\d+$/.test(t)) t = '0' + t;
+  if (t.length !== 4 || !/^\d+$/.test(t)) return null;
+  const hh = parseInt(t.slice(0,2));
+  const mm = parseInt(t.slice(2,4));
+  if (hh > 23 || mm > 59) return null;
+  return hh * 60 + mm;
+}
+function pct(count, total) { return total === 0 ? 0 : 100 * count / total; }
+
+// ── PDF TEXT EXTRACTION ────────────────────────────────────────
+async function extractTextFromPDF(url) {
+  const pdf = await pdfjsLib.getDocument(url).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    // Preserve spacing between items; newline between pages
+    text += content.items.map(item => item.str).join(' ') + '\n';
+  }
+  return text;
 }
 
-// Score legs using distance-from-ideal
-function scoreLegs(avg, ideal, weight) {
-  if (avg === null || avg === undefined) return 0;
-  const diff = Math.abs(avg - ideal);
-  if (diff <= 0.2) return weight;
-  if (diff <= 0.5) return Math.round(weight * 0.8);
-  if (diff <= 1.0) return Math.round(weight * 0.55);
-  if (diff <= 1.5) return Math.round(weight * 0.3);
-  return Math.round(weight * 0.1);
+// ── BASE BLOCK EXTRACTION (port of extract_all_base_blocks) ────
+function extractAllBaseBlocks(pdfText) {
+  const parts = pdfText.split(/(Base\s*:\s*[A-Z]{3}\s*\(CA01FO01\))/);
+  const blocks = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    const m = parts[i].match(/Base\s*:\s*([A-Z]{3})/);
+    if (m) blocks.push([m[1], parts[i+1] || '']);
+  }
+  return blocks;
 }
 
-function runScoring() {
-  const total = Object.values(weights).reduce((a,b)=>a+b,0);
-  if (total !== 100) {
-    alert(`Weights must sum to 100. Currently: ${total}`);
+// ── FLIGHT + METRIC EXTRACTION (port of extract_flights_from_block) ──
+function extractFlightsFromBlock(blockText) {
+  const flightRe  = /[A-Z]{2}\s*\d+\s+[A-Z]{3}-[A-Z]{3}\s+\d{3,4}\s+\d{3,4}/g;
+  const flights   = blockText.match(flightRe) || [];
+  const sits = [], overnights = [], checkins = [], releases = [], legs = [];
+
+  // Day-1 report times (preferred check-in)
+  const day1Re = /DAY\s*0?1\s+REPORT\s+(\d{3,4})/gi;
+  let m;
+  while ((m = day1Re.exec(blockText)) !== null) {
+    const mins = timeToMinutes(m[1]);
+    if (mins !== null) checkins.push(mins);
+  }
+
+  // Fallback: first departure of each pairing chunk
+  if (checkins.length === 0) {
+    const chunks = blockText.split(/(?=[A-Z]\d{4}\b|[A-Z]{2}\d{4}\b)/);
+    for (const chunk of chunks) {
+      const fs = chunk.match(flightRe);
+      if (!fs) continue;
+      const parts = fs[0].split(/\s+/);
+      if (parts.length >= 5) {
+        const dep = timeToMinutes(parts[3]);
+        if (dep !== null) checkins.push(dep);
+      }
+    }
+  }
+
+  // Sit times
+  let prevArr = null;
+  for (const f of flights) {
+    const p = f.split(/\s+/);
+    if (p.length < 5) continue;
+    const dep = timeToMinutes(p[3]);
+    const arr = timeToMinutes(p[4]);
+    if (prevArr !== null && dep !== null) {
+      const sit = dep - prevArr;
+      if (sit > 0 && sit < 600) sits.push(sit);
+    }
+    if (arr !== null) prevArr = arr;
+  }
+
+  // Overnight windows
+  prevArr = null;
+  for (const f of flights) {
+    const p = f.split(/\s+/);
+    if (p.length < 5) continue;
+    const dep = timeToMinutes(p[3]);
+    const arr = timeToMinutes(p[4]);
+    if (prevArr !== null && dep !== null && dep + 60 < prevArr) {
+      const on = (1440 - prevArr) + dep;
+      if (on > 0 && on < 1440) overnights.push(on);
+    }
+    if (arr !== null) prevArr = arr;
+  }
+
+  // Legs per duty day
+  const flightPositions = [];
+  const fpRe = /[A-Z]{2}\s*\d+\s+[A-Z]{3}-[A-Z]{3}/g;
+  let fm;
+  while ((fm = fpRe.exec(blockText)) !== null) flightPositions.push(fm.index);
+  const dEndPositions = [];
+  const deRe = /D-END:/g;
+  let dm;
+  while ((dm = deRe.exec(blockText)) !== null) dEndPositions.push(dm.index);
+  if (dEndPositions.length > 0) {
+    let startIdx = 0;
+    for (const end of dEndPositions) {
+      const count = flightPositions.filter(fp => fp > startIdx && fp < end).length;
+      if (count > 0) legs.push(count);
+      startIdx = end;
+    }
+  }
+
+  // Release times
+  const relRe = /D-END:\s*(\d{3,4})L/g;
+  let rm;
+  while ((rm = relRe.exec(blockText)) !== null) {
+    const mins = timeToMinutes(rm[1]);
+    if (mins !== null) releases.push(mins);
+  }
+
+  return { sits, overnights, checkins, releases, legs };
+}
+
+// ── SCORING (port of score_percent / score_average / score_base) ──
+function scorePercent(valuePct, bands) {
+  for (const [lo,hi,score] of bands) {
+    if (valuePct >= lo && valuePct <= hi) return score;
+  }
+  return bands[bands.length-1][2];
+}
+
+function scoreBase(base, data, userPrefs) {
+  const cfg = BASE_CONFIGS[base];
+  if (!cfg) return null;
+  const res = {};
+
+  // Scale band scores from original weight → user weight
+  function scaleBands(bands, origW, newW) {
+    return bands.map(([lo,hi,s]) => [lo, hi, origW > 0 ? Math.round(s * newW / origW) : 0]);
+  }
+
+  // LONG SITS — user's sit threshold
+  if (cfg.long_sits) {
+    const c = cfg.long_sits;
+    const threshold = userPrefs.sitMins;
+    const observed  = data.sits.filter(x => x > threshold).length;
+    const v         = pct(observed, data.sits.length);
+    const newW      = userWeights.sits;
+    res.long_sits   = { score: scorePercent(v, scaleBands(c.bands, c.weight, newW)), value:v, observed, denominator:data.sits.length, weight:newW };
+  }
+
+  // SHORT OVERNIGHTS — user's RON threshold
+  if (cfg.short_overnights) {
+    const c = cfg.short_overnights;
+    const threshold = userPrefs.ronMins;
+    const observed  = data.overnights.filter(x => x < threshold).length;
+    const v         = pct(observed, data.overnights.length);
+    const newW      = userWeights.ron;
+    res.short_overnights = { score: scorePercent(v, scaleBands(c.bands, c.weight, newW)), value:v, observed, denominator:data.overnights.length, weight:newW };
+  }
+
+  // LATE RELEASES — user's late threshold
+  if (cfg.late) {
+    const c = cfg.late;
+    const threshold = userPrefs.lateMins;
+    const observed  = data.releases.filter(x => x > threshold).length;
+    const v         = pct(observed, data.releases.length);
+    const newW      = userWeights.late;
+    res.late        = { score: scorePercent(v, scaleBands(c.bands, c.weight, newW)), value:v, observed, denominator:data.releases.length, weight:newW };
+  }
+
+  // EARLY CHECK-INS — user's early threshold
+  if (cfg.early) {
+    const c = cfg.early;
+    const threshold = userPrefs.earlyMins;
+    const observed  = data.checkins.filter(x => x < threshold).length;
+    const v         = pct(observed, data.checkins.length);
+    const newW      = userWeights.early;
+    res.early       = { score: scorePercent(v, scaleBands(c.bands, c.weight, newW)), value:v, observed, denominator:data.checkins.length, weight:newW };
+  }
+
+  // HARD LEGS — distance from user's ideal
+  if (cfg.hard_legs) {
+    const c    = cfg.hard_legs;
+    const avg  = data.legs.length > 0 ? data.legs.reduce((a,b)=>a+b,0)/data.legs.length : null;
+    const newW = userWeights.legs;
+    let legsScore = 0;
+    if (avg !== null) {
+      const diff = Math.abs(avg - userPrefs.idealLegs);
+      if      (diff <= 0.2) legsScore = newW;
+      else if (diff <= 0.5) legsScore = Math.round(newW * 0.80);
+      else if (diff <= 1.0) legsScore = Math.round(newW * 0.55);
+      else if (diff <= 1.5) legsScore = Math.round(newW * 0.30);
+      else                  legsScore = Math.round(newW * 0.10);
+    }
+    res.hard_legs = { score:legsScore, value:avg, observed:null, denominator:data.legs.length, weight:newW };
+  }
+
+  const total = Object.values(res).reduce((a,b) => a + b.score, 0);
+  return { total, results: res };
+}
+
+// ── LOGGING ────────────────────────────────────────────────────
+function log(msg, cls='') {
+  const el = document.getElementById('progress-log');
+  const div = document.createElement('div');
+  div.textContent = '> ' + msg;
+  if (cls) div.className = cls;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── MAIN ANALYSIS ──────────────────────────────────────────────
+async function runAnalysis() {
+  const weightTotal = Object.values(userWeights).reduce((a,b)=>a+b,0);
+  if (weightTotal !== 100) { alert(`Weights must sum to 100. Currently: ${weightTotal}`); return; }
+
+  const folder = document.getElementById('month-select').value;
+  if (!folder) { alert('Please select a month.'); return; }
+
+  const lateMins  = timeInputToMins('pref-late');
+  const earlyMins = timeInputToMins('pref-early');
+  const sitMins   = parseFloat(document.getElementById('pref-sit').value) * 60;
+  const idealLegs = parseFloat(document.getElementById('pref-legs').value);
+  const ronMins   = parseFloat(document.getElementById('pref-ron').value) * 60;
+  const userPrefs = { lateMins, earlyMins, sitMins, idealLegs, ronMins };
+
+  document.getElementById('progress-panel').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('progress-log').innerHTML = '';
+  document.getElementById('run-btn').disabled = true;
+
+  const PDF_FILES = ['AA_Package.pdf','DL_Package.pdf','UA_Package.pdf'];
+  const baseData  = {};
+
+  for (const file of PDF_FILES) {
+    const url = `pairings/${folder}/${file}`;
+    log(`Fetching ${file} ...`, 'log-info');
+    try {
+      const text   = await extractTextFromPDF(url);
+      log(`  Read ${text.length.toLocaleString()} characters`, 'log-ok');
+      const blocks = extractAllBaseBlocks(text);
+      if (blocks.length === 0) { log(`  ⚠ No base blocks found`, 'log-warn'); continue; }
+      log(`  Bases found: ${blocks.map(b=>b[0]).join(', ')}`, 'log-ok');
+
+      for (const [base, blockText] of blocks) {
+        const ex = extractFlightsFromBlock(blockText);
+        if (!baseData[base]) baseData[base] = { sits:[], overnights:[], checkins:[], releases:[], legs:[] };
+        baseData[base].sits       = baseData[base].sits.concat(ex.sits);
+        baseData[base].overnights = baseData[base].overnights.concat(ex.overnights);
+        baseData[base].checkins   = baseData[base].checkins.concat(ex.checkins);
+        baseData[base].releases   = baseData[base].releases.concat(ex.releases);
+        baseData[base].legs       = baseData[base].legs.concat(ex.legs);
+        log(`    ${base} → ${ex.sits.length} sits · ${ex.overnights.length} RONs · ${ex.releases.length} releases · ${ex.checkins.length} check-ins · ${ex.legs.length} duty days`);
+      }
+    } catch(e) {
+      log(`  ✗ Failed: ${e.message}`, 'log-err');
+    }
+  }
+
+  log('', '');
+  log('Scoring ...', 'log-info');
+  const results = [];
+
+  for (const base of Object.keys(baseData).sort()) {
+    if (!BASE_CONFIGS[base]) { log(`  ⚠ ${base}: no config, skipping`, 'log-warn'); continue; }
+    const scored = scoreBase(base, baseData[base], userPrefs);
+    if (!scored) continue;
+    results.push({ code:base, total:scored.total, metrics:scored.results });
+    const cls = scored.total >= 70 ? 'log-ok' : scored.total >= 50 ? 'log-warn' : 'log-err';
+    log(`  ${base}: ${scored.total}/100`, cls);
+  }
+
+  if (results.length === 0) {
+    log('', '');
+    log('✗ No bases scored. Verify PDFs contain "Base : XXX (CA01FO01)" headers.', 'log-err');
+    document.getElementById('run-btn').disabled = false;
     return;
   }
 
-  const lateMins  = timeToMins(document.getElementById('pref-late').value);
-  const earlyMins = timeToMins(document.getElementById('pref-early').value);
-  const sitHrs    = parseFloat(document.getElementById('pref-sit').value);
-  const idealLegs = parseFloat(document.getElementById('pref-legs').value);
-  const ronHrs    = parseFloat(document.getElementById('pref-ron').value);
-  const ronMins   = ronHrs * 60;
-
-  const results = [];
-
-  for (const [code, d] of Object.entries(BASE_DATA)) {
-    // Each metric: adjust the base's survey pct by shifting the threshold.
-    // More tolerant threshold → fewer trips flagged → better score.
-    // Less tolerant → more trips flagged → worse score.
-
-    // LATE: user's threshold vs base threshold. If user is more lenient (+), fewer trips get flagged.
-    const lateDeltaMins = lateMins - d.baseLateMins;
-    const adjLate = Math.max(0, Math.min(100, d.lateReleases_pct - lateDeltaMins * 0.3));
-
-    // EARLY: user's threshold vs base. If user threshold is later (more lenient), fewer early flags.
-    const earlyDeltaMins = earlyMins - d.baseEarlyMins;
-    const adjEarly = Math.max(0, Math.min(100, d.earlyCheckins_pct - earlyDeltaMins * 0.4));
-
-    // SITS: user's threshold vs base. Higher threshold = more lenient = fewer long sits flagged.
-    const sitDeltaHrs = sitHrs - d.baseSitHrs;
-    const adjSits = Math.max(0, Math.min(100, d.longSits_pct - sitDeltaHrs * 15));
-
-    // RON: user's threshold vs base. Lower threshold = more lenient.
-    const ronDeltaMins = ronMins - d.baseRONMins;
-    const adjRON = Math.max(0, Math.min(100, d.shortON_pct + ronDeltaMins * 0.05));
-
-    // --- Score each dimension into 0-weight scale ---
-    // Generic band logic scaled to user weight
-    const w = weights;
-
-    // Late score
-    const lateBands = [
-      [0,10,w.late], [10,20,Math.round(w.late*0.8)], [20,35,Math.round(w.late*0.57)],
-      [35,50,Math.round(w.late*0.28)], [50,Infinity,0]
-    ];
-    const lateScore = scoreBand(adjLate, lateBands);
-
-    // Early score
-    const earlyBands = [
-      [0,15,w.early], [15,30,Math.round(w.early*0.8)], [30,45,Math.round(w.early*0.56)],
-      [45,60,Math.round(w.early*0.28)], [60,Infinity,0]
-    ];
-    const earlyScore = scoreBand(adjEarly, earlyBands);
-
-    // Sits score
-    const sitsBands = [
-      [0,15,w.sits], [15,25,Math.round(w.sits*0.8)], [25,40,Math.round(w.sits*0.6)],
-      [40,55,Math.round(w.sits*0.3)], [55,Infinity,0]
-    ];
-    const sitsScore = scoreBand(adjSits, sitsBands);
-
-    // Legs score
-    const legsScore = scoreLegs(d.avgLegs, idealLegs, w.legs);
-
-    // RON score
-    const ronBands = [
-      [0,10,w.ron], [10,20,Math.round(w.ron*0.8)], [20,30,Math.round(w.ron*0.6)],
-      [30,40,Math.round(w.ron*0.4)], [40,Infinity,0]
-    ];
-    const ronScore = scoreBand(adjRON, ronBands);
-
-    const totalScore = lateScore + earlyScore + sitsScore + legsScore + ronScore;
-
-    results.push({
-      code,
-      name: d.name,
-      total: totalScore,
-      metrics: {
-        late:  { score: lateScore,  max: w.late,  pct: adjLate,  label: 'Late Releases' },
-        early: { score: earlyScore, max: w.early, pct: adjEarly, label: 'Early Check-Ins' },
-        sits:  { score: sitsScore,  max: w.sits,  pct: adjSits,  label: 'Long Sits' },
-        legs:  { score: legsScore,  max: w.legs,  avg: d.avgLegs, label: 'Legs/Day' },
-        ron:   { score: ronScore,   max: w.ron,   pct: adjRON,   label: 'Short Overnights' },
-      }
-    });
-  }
-
   results.sort((a,b) => b.total - a.total);
-  renderResults(results, { lateMins, earlyMins, sitHrs, idealLegs, ronHrs });
+  log('', '');
+  log(`✓ Complete — ${results.length} bases ranked.`, 'log-ok');
+  renderResults(results, folder);
+  document.getElementById('run-btn').disabled = false;
 }
 
-function formatTime(mins) {
-  const h = Math.floor(mins/60);
-  const m = mins % 60;
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+function timeInputToMins(id) {
+  const [h,m] = document.getElementById(id).value.split(':').map(Number);
+  return h * 60 + m;
 }
 
-function renderResults(results, prefs) {
-  const el = document.getElementById('results');
-  el.style.display = 'block';
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// ── COLOR HELPERS ──────────────────────────────────────────────
+function scoreColor(s) {
+  if (s >= 85) return { cls:'c-green',  bar:'bg-green',  grade:'A' };
+  if (s >= 70) return { cls:'c-lime',   bar:'bg-lime',   grade:'B' };
+  if (s >= 55) return { cls:'c-yellow', bar:'bg-yellow', grade:'C' };
+  if (s >= 40) return { cls:'c-orange', bar:'bg-orange', grade:'D' };
+  return             { cls:'c-red',    bar:'bg-red',    grade:'F' };
+}
+
+// ── RENDER RESULTS ─────────────────────────────────────────────
+function renderResults(results, folder) {
+  document.getElementById('results').style.display = 'block';
+  setTimeout(() => document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' }), 100);
 
   // Ticker
-  const tickerStr = results.map(r => `${r.code} ${r.total}/100`).join('  ◆  ');
-  const doubled = tickerStr + '  ◆  ' + tickerStr + '  ◆  ';
-  document.getElementById('ticker-text').textContent = doubled;
+  const t = results.map(r=>`${r.code} ${r.total}/100`).join('  ◆  ');
+  document.getElementById('ticker-text').textContent = t + '  ◆  ' + t + '  ◆  ';
 
-  // Winner callout
-  const winner = results[0];
-  const wc = scoreColor(winner.total);
+  // Winner
+  const w  = results[0];
+  const wc = scoreColor(w.total);
   document.getElementById('winner-callout').innerHTML = `
     <div>
-      <div class="winner-label">▶ Optimal Base for Your Preferences</div>
-      <div class="winner-base">${winner.code}</div>
-      <div class="winner-score">${winner.name} — ${winner.total}/100</div>
+      <div class="winner-label">▶ OPTIMAL BASE FOR YOUR PREFERENCES</div>
+      <div class="winner-base">${w.code}</div>
+      <div class="winner-sub">${folder} &nbsp;·&nbsp; ${w.total} / 100</div>
     </div>
-    <div class="winner-right">
-      <div class="winner-grade ${wc.cls}">${wc.grade}</div>
-    </div>
-  `;
+    <div class="winner-grade ${wc.cls}">${wc.grade}</div>`;
 
   // Leaderboard
-  let lbHtml = `
-    <div class="lb-row lb-header">
-      <div>#</div>
-      <div>Base</div>
-      <div>Score Bar</div>
-      <div style="text-align:right">Score</div>
-      <div style="text-align:right">Grade</div>
-    </div>
-  `;
-  results.forEach((r, i) => {
+  let lb = `<div class="lb-row lb-header"><div>#</div><div>Base</div><div>Score</div><div style="text-align:right">Pts</div><div style="text-align:right">Grade</div></div>`;
+  results.forEach((r,i) => {
     const c = scoreColor(r.total);
-    lbHtml += `
-      <div class="lb-row">
-        <div class="lb-rank ${i===0?'gold'':''}">${i+1}</div>
-        <div class="lb-base">${r.code}</div>
-        <div class="lb-bar"><div class="lb-fill ${c.bar}" style="width:${r.total}%"></div></div>
-        <div class="lb-score ${c.cls}">${r.total}</div>
-        <div class="lb-grade ${c.cls}">${c.grade}</div>
-      </div>
-    `;
+    lb += `<div class="lb-row">
+      <div class="lb-rank ${i===0?'gold':''}">${i+1}</div>
+      <div class="lb-base">${r.code}</div>
+      <div><div class="lb-bar"><div class="lb-fill ${c.bar}" style="width:${r.total}%"></div></div></div>
+      <div class="lb-score ${c.cls}">${r.total}</div>
+      <div class="lb-grade ${c.cls}">${c.grade}</div>
+    </div>`;
   });
-  document.getElementById('leaderboard').innerHTML = lbHtml;
+  document.getElementById('leaderboard').innerHTML = lb;
 
-  // Base cards
-  let cardsHtml = '';
-  results.forEach((r, i) => {
-    const c = scoreColor(r.total);
-    const rankClass = i < 3 ? `rank-${i+1}` : '';
-    const rankBadge = i < 3 ? `<div class="rank-badge">#${i+1}</div>` : '';
-
-    const metricOrder = ['late','early','sits','legs','ron'];
-    let metricRows = '';
-    metricOrder.forEach(key => {
-      const m = r.metrics[key];
-      if (!m || m.max === 0) return;
-      const fillPct = Math.round(100 * m.score / m.max);
-      const mc = scoreColor(fillPct);
-      const detail = key === 'legs'
-        ? `avg ${m.avg?.toFixed(1)} / ideal ${prefs.idealLegs}`
-        : `${m.pct?.toFixed(0)}% flagged`;
-      metricRows += `
-        <div class="metric-row">
-          <div class="metric-name">${m.label}</div>
-          <div class="metric-bar"><div class="metric-bar-fill ${mc.bar}" style="width:${fillPct}%"></div></div>
-          <div class="metric-score ${mc.cls}">${m.score}/${m.max}</div>
-        </div>
-      `;
-    });
-
-    cardsHtml += `
-      <div class="base-card ${rankClass}">
-        ${rankBadge}
-        <div class="base-card-header">
-          <div class="base-code">${r.code}</div>
-          <div class="base-total ${c.cls}">${r.total}<span style="font-size:16px;color:var(--text-dim)">/100</span></div>
-        </div>
-        <div class="base-score-bar">
-          <div class="base-score-fill ${c.bar}" style="width:${r.total}%"></div>
-        </div>
-        <div class="base-metrics">${metricRows}</div>
+  // Cards
+  let cards = '';
+  results.forEach((r,i) => {
+    const c   = scoreColor(r.total);
+    const cfg = BASE_CONFIGS[r.code];
+    const badge = i < 3 ? `<div class="rank-badge">#${i+1}</div>` : '';
+    let rows = '';
+    for (const key of cfg.order) {
+      const met = r.metrics[key];
+      if (!met) continue;
+      const fillPct = met.weight > 0 ? Math.round(100 * met.score / met.weight) : 0;
+      const mc      = scoreColor(fillPct);
+      const detail  = key === 'hard_legs'
+        ? (met.value !== null ? `avg ${met.value.toFixed(2)}/day` : 'N/A')
+        : (met.denominator > 0 ? `${met.value.toFixed(1)}% (${met.observed}/${met.denominator})` : 'no data');
+      rows += `<div class="metric-row">
+        <div class="metric-name">${cfg[key].label.split('—')[0].trim()}</div>
+        <div class="metric-mini-bar"><div class="metric-mini-fill ${mc.bar}" style="width:${fillPct}%"></div></div>
+        <div class="metric-pts ${mc.cls}">${met.score}/${met.weight}</div>
+        <div class="metric-detail">${detail}</div>
+      </div>`;
+    }
+    cards += `<div class="base-card ${i < 3 ? 'rank-'+(i+1) : ''}">
+      ${badge}
+      <div class="card-header">
+        <div class="card-code">${r.code}</div>
+        <div class="card-total ${c.cls}">${r.total}<sup>/100</sup></div>
       </div>
-    `;
+      <div class="card-bar"><div class="card-bar-fill ${c.bar}" style="width:${r.total}%"></div></div>
+      ${rows}
+    </div>`;
   });
-  document.getElementById('base-cards').innerHTML = cardsHtml;
+  document.getElementById('base-cards').innerHTML = cards;
 }
 
-// Init weight display
-updateWeight('late', 35);
-updateWeight('early', 25);
-updateWeight('sits', 20);
-updateWeight('legs', 15);
-updateWeight('ron', 5);
+// Init
+['late','early','sits','legs','ron'].forEach(k => updateWeight(k, userWeights[k]));
 document.getElementById('weight-sum').className = 'weight-sum ok';
 </script>
 </body>
