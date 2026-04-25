@@ -1015,7 +1015,16 @@ function renderResults(results, folder) {
   const priorityOrder = Array.from(document.querySelectorAll('#priority-list .priority-item'))
     .map(el => el.dataset.key);
 
-  // Friendly metric labels (short, no jargon)
+  // Map priority list keys → metrics object keys
+  const PRIORITY_TO_METRIC = {
+    late:  'late',
+    early: 'early',
+    sits:  'long_sits',
+    legs:  'hard_legs',
+    ron:   'short_overnights',
+  };
+
+  // Friendly metric labels
   const METRIC_LABELS = {
     late:             'Getting home on time',
     early:            'Not starting too early',
@@ -1030,24 +1039,25 @@ function renderResults(results, folder) {
     const badge = i < 3 ? `<div class="rank-badge">#${i+1}</div>` : '';
     let rows = '';
     for (const key of priorityOrder) {
-      const met = r.metrics[key];
+      const metKey = PRIORITY_TO_METRIC[key] || key;
+      const met = r.metrics[metKey];
       if (!met) continue;
       const fillPct = met.weight > 0 ? Math.round(100 * met.score / met.weight) : 0;
       const mc = scoreColor(fillPct);
       let detail = '';
-      if (key === 'hard_legs') {
+      if (metKey === 'hard_legs') {
         detail = met.value !== null ? `avg ${met.value.toFixed(1)} legs/day` : 'no data';
-      } else if (key === 'late') {
+      } else if (metKey === 'late') {
         detail = met.denominator > 0 ? `${met.observed} of ${met.denominator} pairings late` : 'no data';
-      } else if (key === 'early') {
+      } else if (metKey === 'early') {
         detail = met.denominator > 0 ? `${met.observed} of ${met.denominator} pairings early` : 'no data';
-      } else if (key === 'long_sits') {
+      } else if (metKey === 'long_sits') {
         detail = met.denominator > 0 ? `${met.observed} of ${met.denominator} sits too long` : 'no data';
-      } else if (key === 'short_overnights') {
+      } else if (metKey === 'short_overnights') {
         detail = met.denominator > 0 ? `${met.observed} of ${met.denominator} RONs short` : 'no data';
       }
       rows += `<div class="metric-row">
-        <div class="metric-name">${METRIC_LABELS[key] || key}</div>
+        <div class="metric-name">${METRIC_LABELS[metKey] || metKey}</div>
         <div class="metric-mini-bar"><div class="metric-mini-fill ${mc.bar}" style="width:${fillPct}%"></div></div>
         <div class="metric-pts ${mc.cls}">${met.score}</div>
         <div class="metric-detail">${detail}</div>
