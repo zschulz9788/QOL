@@ -103,6 +103,109 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14p
 .weight-sum.ok { color: var(--green); }
 .weight-sum.warn { color: var(--red); }
 
+/* PREF CARDS */
+.pref-friendly-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.pref-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 16px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  transition: border-color .2s;
+}
+.pref-card:focus-within { border-color: var(--amber); }
+.pref-card-icon { font-size: 22px; margin-top: 2px; flex-shrink: 0; }
+.pref-card-body { flex: 1; }
+.pref-card-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+.pref-card-sub { font-family: var(--mono); font-size: 10px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.5; }
+.pref-time-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--amber);
+  font-family: var(--mono);
+  font-size: 22px;
+  padding: 8px 12px;
+  outline: none;
+  width: 100%;
+}
+.pref-time-input:focus { border-color: var(--amber); }
+.pref-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.pref-stepper button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--amber);
+  font-size: 20px;
+  width: 38px;
+  height: 42px;
+  cursor: pointer;
+  transition: background .15s;
+  flex-shrink: 0;
+}
+.pref-stepper button:hover { background: var(--amber); color: var(--bg); }
+.pref-stepper input {
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-left: none;
+  border-right: none;
+  color: var(--amber);
+  font-family: var(--mono);
+  font-size: 22px;
+  width: 70px;
+  height: 42px;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.pref-stepper input::-webkit-inner-spin-button { display: none; }
+.pref-unit { font-family: var(--mono); font-size: 12px; color: var(--text-dim); margin-left: 10px; }
+
+/* PRIORITY LIST */
+.priority-section { border-top: 1px solid var(--border); padding-top: 22px; margin-bottom: 0; }
+.priority-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.priority-sub { font-family: var(--mono); font-size: 10px; color: var(--text-muted); font-weight: 400; margin-left: 8px; }
+.priority-list { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.priority-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+  cursor: grab;
+  transition: border-color .2s, background .2s;
+  user-select: none;
+}
+.priority-item:active { cursor: grabbing; }
+.priority-item.dragging { opacity: .4; border-color: var(--amber); }
+.priority-item.drag-over { border-color: var(--amber); background: var(--surface2); }
+.priority-handle { color: var(--text-muted); font-size: 16px; flex-shrink: 0; }
+.priority-rank {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: var(--bg);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: bold;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.priority-rank.rank-low { background: var(--border); color: var(--text-dim); }
+.priority-text { flex: 1; }
+.priority-name { font-size: 14px; font-weight: 700; color: #fff; }
+.priority-desc { font-family: var(--mono); font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
 /* RUN BUTTON */
 .run-btn {
   display: block; width: 100%; margin-top: 22px; padding: 15px;
@@ -239,60 +342,117 @@ footer { border-top: 1px solid var(--border); text-align: center; padding: 20px;
 
   <!-- STEP 2 -->
   <div class="panel">
-    <div class="section-label">// 02 — YOUR PERSONAL THRESHOLDS</div>
-    <div class="pref-grid">
-      <div class="pref-field">
-        <label>Late Release After</label>
-        <div class="hint">Trips ending after this hurt QOL</div>
-        <input type="time" id="pref-late" value="17:30">
+    <div class="section-label">// 02 — YOUR PREFERENCES</div>
+
+    <div class="pref-friendly-grid">
+
+      <div class="pref-card">
+        <div class="pref-card-icon"></div>
+        <div class="pref-card-body">
+          <div class="pref-card-title">I want to be done by...</div>
+          <div class="pref-card-sub">Trips ending after this time hurt your QOL score</div>
+          <input type="time" id="pref-late" value="17:30" class="pref-time-input">
+        </div>
       </div>
-      <div class="pref-field">
-        <label>Early Check-In Before</label>
-        <div class="hint">Trips starting before this hurt QOL</div>
-        <input type="time" id="pref-early" value="10:00">
+
+      <div class="pref-card">
+        <div class="pref-card-icon"></div>
+        <div class="pref-card-body">
+          <div class="pref-card-title">I don't want to start before...</div>
+          <div class="pref-card-sub">Trips checking in before this time hurt your QOL score</div>
+          <input type="time" id="pref-early" value="10:00" class="pref-time-input">
+        </div>
       </div>
-      <div class="pref-field">
-        <label>Long Sit Over (hrs)</label>
-        <div class="hint">Sits longer than this feel wasted</div>
-        <input type="number" id="pref-sit" value="2.36" step="0.01" min="1" max="6">
+
+      <div class="pref-card">
+        <div class="pref-card-icon"></div>
+        <div class="pref-card-body">
+          <div class="pref-card-title">A sit feels too long after...</div>
+          <div class="pref-card-sub">Ground time longer than this feels like wasted duty time</div>
+          <div class="pref-stepper">
+            <button onclick="stepVal('pref-sit',-0.25)">−</button>
+            <input type="number" id="pref-sit" value="2.25" step="0.25" min="0.5" max="6" readonly>
+            <button onclick="stepVal('pref-sit',0.25)">+</button>
+            <span class="pref-unit">hrs</span>
+          </div>
+        </div>
       </div>
-      <div class="pref-field">
-        <label>Ideal Legs / Day</label>
-        <div class="hint">Your preferred avg legs per duty day</div>
-        <input type="number" id="pref-legs" value="2.5" step="0.1" min="1" max="6">
+
+      <div class="pref-card">
+        <div class="pref-card-icon"></div>
+        <div class="pref-card-body">
+          <div class="pref-card-title">My ideal legs per day is...</div>
+          <div class="pref-card-sub">Bases closest to this average score best for workload</div>
+          <div class="pref-stepper">
+            <button onclick="stepVal('pref-legs',-0.5)">−</button>
+            <input type="number" id="pref-legs" value="2.5" step="0.5" min="1" max="6" readonly>
+            <button onclick="stepVal('pref-legs',0.5)">+</button>
+            <span class="pref-unit">legs</span>
+          </div>
+        </div>
       </div>
-      <div class="pref-field">
-        <label>Min Overnight (hrs)</label>
-        <div class="hint">Overnights shorter than this feel short</div>
-        <input type="number" id="pref-ron" value="11" step="0.5" min="6" max="20">
+
+      <div class="pref-card">
+        <div class="pref-card-icon"></div>
+        <div class="pref-card-body">
+          <div class="pref-card-title">An overnight feels too short under...</div>
+          <div class="pref-card-sub">Overnights shorter than this feel like you barely slept</div>
+          <div class="pref-stepper">
+            <button onclick="stepVal('pref-ron',-0.5)">−</button>
+            <input type="number" id="pref-ron" value="11" step="0.5" min="6" max="20" readonly>
+            <button onclick="stepVal('pref-ron',0.5)">+</button>
+            <span class="pref-unit">hrs</span>
+          </div>
+        </div>
       </div>
+
     </div>
 
-    <div class="weights-section">
-      <div class="weights-label">// WHAT MATTERS MOST TO YOU? — weights must total 100</div>
-      <div class="weights-grid">
-        <div class="weight-row">
-          <label>Late Releases <span id="wv-late">35</span></label>
-          <input type="range" id="w-late" min="0" max="70" value="35" oninput="updateWeight('late',this.value)">
+    <!-- PRIORITY RANKING -->
+    <div class="priority-section">
+      <div class="priority-title">What matters most to you? <span class="priority-sub">Drag to reorder — top = most important</span></div>
+      <div class="priority-list" id="priority-list">
+        <div class="priority-item" data-key="late" draggable="true">
+          <div class="priority-handle">⠿</div>
+          <div class="priority-rank" id="pr-late">1</div>
+          <div class="priority-text">
+            <div class="priority-name">Getting home on time</div>
+            <div class="priority-desc">Late releases hurt commutability</div>
+          </div>
         </div>
-        <div class="weight-row">
-          <label>Early Check-Ins <span id="wv-early">25</span></label>
-          <input type="range" id="w-early" min="0" max="70" value="25" oninput="updateWeight('early',this.value)">
+        <div class="priority-item" data-key="early" draggable="true">
+          <div class="priority-handle">⠿</div>
+          <div class="priority-rank" id="pr-early">2</div>
+          <div class="priority-text">
+            <div class="priority-name">Not starting too early</div>
+            <div class="priority-desc">Early check-ins hurt front-end commutability</div>
+          </div>
         </div>
-        <div class="weight-row">
-          <label>Long Sits <span id="wv-sits">20</span></label>
-          <input type="range" id="w-sits" min="0" max="70" value="20" oninput="updateWeight('sits',this.value)">
+        <div class="priority-item" data-key="sits" draggable="true">
+          <div class="priority-handle">⠿</div>
+          <div class="priority-rank" id="pr-sits">3</div>
+          <div class="priority-text">
+            <div class="priority-name">Efficient duty days</div>
+            <div class="priority-desc">Long sits feel like wasted time on the ground</div>
+          </div>
         </div>
-        <div class="weight-row">
-          <label>Legs per Day <span id="wv-legs">15</span></label>
-          <input type="range" id="w-legs" min="0" max="70" value="15" oninput="updateWeight('legs',this.value)">
+        <div class="priority-item" data-key="legs" draggable="true">
+          <div class="priority-handle">⠿</div>
+          <div class="priority-rank" id="pr-legs">4</div>
+          <div class="priority-text">
+            <div class="priority-name">Right number of legs</div>
+            <div class="priority-desc">Too many or too few legs per day affects workload</div>
+          </div>
         </div>
-        <div class="weight-row">
-          <label>Short Overnights <span id="wv-ron">5</span></label>
-          <input type="range" id="w-ron" min="0" max="70" value="5" oninput="updateWeight('ron',this.value)">
+        <div class="priority-item" data-key="ron" draggable="true">
+          <div class="priority-handle">⠿</div>
+          <div class="priority-rank" id="pr-ron">5</div>
+          <div class="priority-text">
+            <div class="priority-name">Decent overnight rest</div>
+            <div class="priority-desc">Short overnights leave you tired the next day</div>
+          </div>
         </div>
       </div>
-      <div class="weight-sum ok" id="weight-sum">Total: 100 / 100</div>
     </div>
 
     <button class="run-btn" id="run-btn" onclick="runAnalysis()">▶ Analyze Pairings &amp; Calculate Rankings</button>
@@ -408,16 +568,63 @@ const BASE_CONFIGS = {
   },
 };
 
-// ── WEIGHT STATE ───────────────────────────────────────────────
-const userWeights = { late:35, early:25, sits:20, legs:15, ron:5 };
-function updateWeight(key, val) {
-  userWeights[key] = parseInt(val);
-  document.getElementById('wv-' + key).textContent = val;
-  const total = Object.values(userWeights).reduce((a,b)=>a+b, 0);
-  const el = document.getElementById('weight-sum');
-  el.textContent = `Total: ${total} / 100`;
-  el.className = 'weight-sum ' + (total === 100 ? 'ok' : 'warn');
+// ── STEPPER HELPER ─────────────────────────────────────────────
+function stepVal(id, delta) {
+  const el = document.getElementById(id);
+  const val = parseFloat(el.value) + delta;
+  const min = parseFloat(el.min);
+  const max = parseFloat(el.max);
+  el.value = Math.min(max, Math.max(min, Math.round(val * 100) / 100));
 }
+
+// ── PRIORITY → WEIGHTS ─────────────────────────────────────────
+// Rank 1 = most important. Weights: [40, 28, 18, 10, 4]
+const PRIORITY_WEIGHTS = [40, 28, 18, 10, 4];
+const userWeights = { late:40, early:28, sits:18, legs:10, ron:4 };
+
+function updateWeightsFromOrder() {
+  const items = document.querySelectorAll('#priority-list .priority-item');
+  items.forEach((item, i) => {
+    const key = item.dataset.key;
+    userWeights[key] = PRIORITY_WEIGHTS[i];
+    const rankEl = document.getElementById('pr-' + key);
+    rankEl.textContent = i + 1;
+    rankEl.className = 'priority-rank' + (i >= 3 ? ' rank-low' : '');
+  });
+}
+
+// ── DRAG & DROP PRIORITY LIST ──────────────────────────────────
+let dragSrc = null;
+function initDragDrop() {
+  const list = document.getElementById('priority-list');
+  list.addEventListener('dragstart', e => {
+    dragSrc = e.target.closest('.priority-item');
+    if (dragSrc) dragSrc.classList.add('dragging');
+  });
+  list.addEventListener('dragend', e => {
+    document.querySelectorAll('.priority-item').forEach(el => {
+      el.classList.remove('dragging', 'drag-over');
+    });
+    updateWeightsFromOrder();
+  });
+  list.addEventListener('dragover', e => {
+    e.preventDefault();
+    const target = e.target.closest('.priority-item');
+    if (!target || target === dragSrc) return;
+    document.querySelectorAll('.priority-item').forEach(el => el.classList.remove('drag-over'));
+    target.classList.add('drag-over');
+    const rect = target.getBoundingClientRect();
+    const after = e.clientY > rect.top + rect.height / 2;
+    if (after) target.after(dragSrc);
+    else target.before(dragSrc);
+  });
+  list.addEventListener('dragleave', e => {
+    const target = e.target.closest('.priority-item');
+    if (target) target.classList.remove('drag-over');
+  });
+  list.addEventListener('drop', e => { e.preventDefault(); });
+}
+initDragDrop();
 
 // ── LOAD MONTH LIST ────────────────────────────────────────────
 async function loadMonths() {
@@ -644,8 +851,8 @@ function log(msg, cls='') {
 
 // ── MAIN ANALYSIS ──────────────────────────────────────────────
 async function runAnalysis() {
-  const weightTotal = Object.values(userWeights).reduce((a,b)=>a+b,0);
-  if (weightTotal !== 100) { alert(`Weights must sum to 100. Currently: ${weightTotal}`); return; }
+  // Update weights from current priority order before scoring
+  updateWeightsFromOrder();
 
   const folder = document.getElementById('month-select').value;
   if (folder === null) { alert('Please select a month.'); return; }
@@ -801,8 +1008,7 @@ function renderResults(results, folder) {
 }
 
 // Init
-['late','early','sits','legs','ron'].forEach(k => updateWeight(k, userWeights[k]));
-document.getElementById('weight-sum').className = 'weight-sum ok';
+updateWeightsFromOrder();
 </script>
 </body>
 </html>
