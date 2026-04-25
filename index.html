@@ -684,11 +684,17 @@ function extractAllBaseBlocks(pdfText) {
 }
 
 // ── FLIGHT + METRIC EXTRACTION ────────────────────────────────
-// PDF.js adds spaces: "FR 4566 BOS - JFK 0600 0720", "D - END: 1551L", "REPT: 0515L"
+// PDF.js text: "FR 4566 BOS - JFK 0600 0720", "D - END: 1551L", "REPT: 0515L"
+// KEY RULES:
+//   checkins  = FIRST REPT of each pairing  (day-1 commutability only)
+//   releases  = LAST D-END of each pairing  (final-day commutability only)
+//   sits      = all intra-day ground times
+//   overnights= all RON windows
+//   legs      = flights per duty day
 function extractFlightsFromBlock(blockText) {
   const sits = [], overnights = [], checkins = [], releases = [], legs = [];
 
-  // FLIGHT TIMES: match "XX 1234 AAA - BBB 0600 0720" (spaces around hyphen)
+  // FLIGHT TIMES
   const flightRe = /[A-Z]{2}\s+\d+\s+[A-Z]{3}\s*-\s*[A-Z]{3}\s+(\d{3,4})\s+(\d{3,4})/g;
   const flightTimes = [];
   let fm;
@@ -698,29 +704,34 @@ function extractFlightsFromBlock(blockText) {
     if (dep !== null && arr !== null) flightTimes.push({ dep, arr, index: fm.index });
   }
 
-  // RELEASE TIMES: "D - END: 1551L" (PDF.js spaces around hyphen)
+  // ALL D-END positions + times
   const dEndRe = /D\s*-\s*END:\s*(\d{3,4})L/g;
   let dm;
-  const dEndPositions = [];
+  const dEndList = []; // { mins, index }
   while ((dm = dEndRe.exec(blockText)) !== null) {
     const mins = timeToMinutes(dm[1]);
-    if (mins !== null) {
-      releases.push(mins);
-      dEndPositions.push(dm.index);
-    }
+    if (mins !== null) dEndList.push({ mins, index: dm.index });
   }
 
-  // CHECK-INS: "REPT: 0515L" — first one in the block = day-1 check-in
+  // ALL REPT positions + times
   const reptRe = /REPT:\s*(\d{3,4})L/g;
   let rm;
-  const reptTimes = [];
+  const reptList = []; // { mins, index }
   while ((rm = reptRe.exec(blockText)) !== null) {
     const mins = timeToMinutes(rm[1]);
-    if (mins !== null) reptTimes.push(mins);
+    if (mins !== null) reptList.push({ mins, index: rm.index });
   }
-  if (reptTimes.length > 0) checkins.push(reptTimes[0]);
+
+  // Each pairing starts at the REPT before the first D-END and ends at the last D-END.
+  // We split pairings by "BASE REPT:" headers — but since each call to this function
+  // already receives ONE pairing block, we just:
+  //   checkin  = reptList[0]  (first REPT = day-1 report)
+  //   release  = dEndList[last] (final D-END = last-day release)
+  if (reptList.length > 0) checkins.push(reptList[0].mins);
+  if (dEndList.length > 0) releases.push(dEndList[dEndList.length - 1].mins);
 
   // Split flights into duty days using D-END positions
+  const dEndPositions = dEndList.map(d => d.index);
   const dutyDays = [];
   let dayFlights = [];
   let dIdx = 0;
@@ -735,16 +746,14 @@ function extractFlightsFromBlock(blockText) {
   if (dayFlights.length > 0) dutyDays.push(dayFlights);
 
   for (const day of dutyDays) {
-    // Legs per duty day
     if (day.length > 0) legs.push(day.length);
-    // Sits within a duty day
     for (let i = 1; i < day.length; i++) {
       const sit = day[i].dep - day[i-1].arr;
       if (sit > 0 && sit < 600) sits.push(sit);
     }
   }
 
-  // Overnights: time between last arr of one duty day and first dep of next
+  // Overnights
   for (let d = 1; d < dutyDays.length; d++) {
     const prev = dutyDays[d-1];
     const curr = dutyDays[d];
@@ -752,91 +761,110 @@ function extractFlightsFromBlock(blockText) {
     const lastArr = prev[prev.length-1].arr;
     const nextDep = curr[0].dep;
     const on = nextDep < lastArr
-      ? (1440 - lastArr) + nextDep   // crossed midnight
-      : nextDep - lastArr;           // same calendar day
+      ? (1440 - lastArr) + nextDep
+      : nextDep - lastArr;
     if (on > 60 && on < 1440) overnights.push(on);
   }
 
   return { sits, overnights, checkins, releases, legs };
 }
 
-// ── SCORING (port of score_percent / score_average / score_base) ──
-function scorePercent(valuePct, bands) {
-  for (const [lo,hi,score] of bands) {
-    if (valuePct >= lo && valuePct <= hi) return score;
-  }
-  return bands[bands.length-1][2];
-}
-
-function scoreBase(base, data, userPrefs) {
+// ── SCORING ────────────────────────────────────────────────────
+// rawScoreBase: returns 0-1 raw scores per metric (before curve)
+function rawScoreBase(base, data, userPrefs) {
   const cfg = BASE_CONFIGS[base];
   if (!cfg) return null;
   const res = {};
 
-  // Scale band scores from original weight → user weight
-  function scaleBands(bands, origW, newW) {
-    return bands.map(([lo,hi,s]) => [lo, hi, origW > 0 ? Math.round(s * newW / origW) : 0]);
-  }
-
-  // LONG SITS — user's sit threshold
+  // LONG SITS: % of sits over threshold → lower is better → score = 1 - pct/100
   if (cfg.long_sits) {
-    const c = cfg.long_sits;
     const threshold = userPrefs.sitMins;
     const observed  = data.sits.filter(x => x > threshold).length;
-    const v         = pct(observed, data.sits.length);
-    const newW      = userWeights.sits;
-    res.long_sits   = { score: scorePercent(v, scaleBands(c.bands, c.weight, newW)), value:v, observed, denominator:data.sits.length, weight:newW };
+    const v = pct(observed, data.sits.length);
+    // Absolute floor: >60% bad sits = never more than 0.3
+    const raw = Math.max(0, 1 - v / 100);
+    res.long_sits = { raw, value: v, observed, denominator: data.sits.length, weight: userWeights.sits };
   }
 
-  // SHORT OVERNIGHTS — user's RON threshold
+  // SHORT OVERNIGHTS: % of RONs under threshold → lower is better
   if (cfg.short_overnights) {
-    const c = cfg.short_overnights;
     const threshold = userPrefs.ronMins;
     const observed  = data.overnights.filter(x => x < threshold).length;
-    const v         = pct(observed, data.overnights.length);
-    const newW      = userWeights.ron;
-    res.short_overnights = { score: scorePercent(v, scaleBands(c.bands, c.weight, newW)), value:v, observed, denominator:data.overnights.length, weight:newW };
+    const v = pct(observed, data.overnights.length);
+    res.short_overnights = { raw: Math.max(0, 1 - v / 100), value: v, observed, denominator: data.overnights.length, weight: userWeights.ron };
   }
 
-  // LATE RELEASES — user's late threshold
+  // LATE RELEASES: % of LAST-DAY releases over threshold → lower is better
   if (cfg.late) {
-    const c = cfg.late;
     const threshold = userPrefs.lateMins;
     const observed  = data.releases.filter(x => x > threshold).length;
-    const v         = pct(observed, data.releases.length);
-    const newW      = userWeights.late;
-    res.late        = { score: scorePercent(v, scaleBands(c.bands, c.weight, newW)), value:v, observed, denominator:data.releases.length, weight:newW };
+    const v = pct(observed, data.releases.length);
+    res.late = { raw: Math.max(0, 1 - v / 100), value: v, observed, denominator: data.releases.length, weight: userWeights.late };
   }
 
-  // EARLY CHECK-INS — user's early threshold
+  // EARLY CHECK-INS: % of FIRST-DAY check-ins before threshold → lower is better
   if (cfg.early) {
-    const c = cfg.early;
     const threshold = userPrefs.earlyMins;
     const observed  = data.checkins.filter(x => x < threshold).length;
-    const v         = pct(observed, data.checkins.length);
-    const newW      = userWeights.early;
-    res.early       = { score: scorePercent(v, scaleBands(c.bands, c.weight, newW)), value:v, observed, denominator:data.checkins.length, weight:newW };
+    const v = pct(observed, data.checkins.length);
+    res.early = { raw: Math.max(0, 1 - v / 100), value: v, observed, denominator: data.checkins.length, weight: userWeights.early };
   }
 
-  // HARD LEGS — distance from user's ideal
+  // HARD LEGS: proximity to ideal legs/day
   if (cfg.hard_legs) {
-    const c    = cfg.hard_legs;
-    const avg  = data.legs.length > 0 ? data.legs.reduce((a,b)=>a+b,0)/data.legs.length : null;
-    const newW = userWeights.legs;
-    let legsScore = 0;
+    const avg = data.legs.length > 0 ? data.legs.reduce((a,b)=>a+b,0)/data.legs.length : null;
+    let raw = 0;
     if (avg !== null) {
       const diff = Math.abs(avg - userPrefs.idealLegs);
-      if      (diff <= 0.2) legsScore = newW;
-      else if (diff <= 0.5) legsScore = Math.round(newW * 0.80);
-      else if (diff <= 1.0) legsScore = Math.round(newW * 0.55);
-      else if (diff <= 1.5) legsScore = Math.round(newW * 0.30);
-      else                  legsScore = Math.round(newW * 0.10);
+      if      (diff <= 0.2) raw = 1.0;
+      else if (diff <= 0.5) raw = 0.80;
+      else if (diff <= 1.0) raw = 0.55;
+      else if (diff <= 1.5) raw = 0.30;
+      else                  raw = 0.10;
     }
-    res.hard_legs = { score:legsScore, value:avg, observed:null, denominator:data.legs.length, weight:newW };
+    res.hard_legs = { raw, value: avg, observed: null, denominator: data.legs.length, weight: userWeights.legs };
   }
 
-  const total = Object.values(res).reduce((a,b) => a + b.score, 0);
-  return { total, results: res };
+  return res;
+}
+
+// applyHybridCurve: takes all bases' raw scores per metric, applies hybrid grading
+// Hybrid = 60% absolute (raw score) + 40% relative (rank among bases this month)
+function applyHybridCurve(allRaw) {
+  // allRaw: { base: { metric: { raw, value, observed, denominator, weight } } }
+  const bases   = Object.keys(allRaw);
+  const metrics = new Set();
+  bases.forEach(b => Object.keys(allRaw[b]).forEach(m => metrics.add(m)));
+
+  // Per metric, find min/max raw across all bases for relative scoring
+  const metricStats = {};
+  for (const m of metrics) {
+    const vals = bases.map(b => allRaw[b][m]?.raw ?? null).filter(v => v !== null);
+    metricStats[m] = {
+      min: Math.min(...vals),
+      max: Math.max(...vals),
+    };
+  }
+
+  const results = {};
+  for (const base of bases) {
+    const res = {};
+    let total = 0;
+    for (const [m, met] of Object.entries(allRaw[base])) {
+      const { min, max } = metricStats[m];
+      // Relative score: 0-1 where 1 = best base this month for this metric
+      const range = max - min;
+      const relative = range < 0.01 ? 1.0 : (met.raw - min) / range;
+      // Hybrid: 60% absolute, 40% relative — both 0-1
+      const hybrid = 0.60 * met.raw + 0.40 * relative;
+      // Convert to weighted points
+      const score = Math.round(hybrid * met.weight);
+      total += score;
+      res[m] = { ...met, score, hybrid };
+    }
+    results[base] = { total, results: res };
+  }
+  return results;
 }
 
 // ── LOGGING ────────────────────────────────────────────────────
@@ -899,12 +927,21 @@ async function runAnalysis() {
 
   log('', '');
   log('Scoring ...', 'log-info');
-  const results = [];
 
+  // Step 1: collect raw 0-1 scores per base per metric
+  const allRaw = {};
   for (const base of Object.keys(baseData).sort()) {
     if (!BASE_CONFIGS[base]) { log(`  ⚠ ${base}: no config, skipping`, 'log-warn'); continue; }
-    const scored = scoreBase(base, baseData[base], userPrefs);
-    if (!scored) continue;
+    const raw = rawScoreBase(base, baseData[base], userPrefs);
+    if (raw) allRaw[base] = raw;
+  }
+
+  // Step 2: apply hybrid curve across all bases
+  const curved = applyHybridCurve(allRaw);
+
+  // Step 3: build results array
+  const results = [];
+  for (const [base, scored] of Object.entries(curved)) {
     results.push({ code:base, total:scored.total, metrics:scored.results });
     const cls = scored.total >= 70 ? 'log-ok' : scored.total >= 50 ? 'log-warn' : 'log-err';
     log(`  ${base}: ${scored.total}/100`, cls);
@@ -930,11 +967,13 @@ function timeInputToMins(id) {
 }
 
 // ── COLOR HELPERS ──────────────────────────────────────────────
+// Grades are relative to the max possible score (100) but
+// we also consider rank context — see hybrid curve above.
 function scoreColor(s) {
-  if (s >= 85) return { cls:'c-green',  bar:'bg-green',  grade:'A' };
-  if (s >= 70) return { cls:'c-lime',   bar:'bg-lime',   grade:'B' };
-  if (s >= 55) return { cls:'c-yellow', bar:'bg-yellow', grade:'C' };
-  if (s >= 40) return { cls:'c-orange', bar:'bg-orange', grade:'D' };
+  if (s >= 75) return { cls:'c-green',  bar:'bg-green',  grade:'A' };
+  if (s >= 58) return { cls:'c-lime',   bar:'bg-lime',   grade:'B' };
+  if (s >= 42) return { cls:'c-yellow', bar:'bg-yellow', grade:'C' };
+  if (s >= 28) return { cls:'c-orange', bar:'bg-orange', grade:'D' };
   return             { cls:'c-red',    bar:'bg-red',    grade:'F' };
 }
 
@@ -972,25 +1011,45 @@ function renderResults(results, folder) {
   });
   document.getElementById('leaderboard').innerHTML = lb;
 
-  // Cards
+  // Cards — ordered by USER'S priority drag order, not base config order
+  const priorityOrder = Array.from(document.querySelectorAll('#priority-list .priority-item'))
+    .map(el => el.dataset.key);
+
+  // Friendly metric labels (short, no jargon)
+  const METRIC_LABELS = {
+    late:             'Getting home on time',
+    early:            'Not starting too early',
+    long_sits:        'Efficient duty days',
+    hard_legs:        'Right number of legs',
+    short_overnights: 'Decent overnight rest',
+  };
+
   let cards = '';
   results.forEach((r,i) => {
     const c   = scoreColor(r.total);
-    const cfg = BASE_CONFIGS[r.code];
     const badge = i < 3 ? `<div class="rank-badge">#${i+1}</div>` : '';
     let rows = '';
-    for (const key of cfg.order) {
+    for (const key of priorityOrder) {
       const met = r.metrics[key];
       if (!met) continue;
       const fillPct = met.weight > 0 ? Math.round(100 * met.score / met.weight) : 0;
-      const mc      = scoreColor(fillPct);
-      const detail  = key === 'hard_legs'
-        ? (met.value !== null ? `avg ${met.value.toFixed(2)}/day` : 'N/A')
-        : (met.denominator > 0 ? `${met.value.toFixed(1)}% (${met.observed}/${met.denominator})` : 'no data');
+      const mc = scoreColor(fillPct);
+      let detail = '';
+      if (key === 'hard_legs') {
+        detail = met.value !== null ? `avg ${met.value.toFixed(1)} legs/day` : 'no data';
+      } else if (key === 'late') {
+        detail = met.denominator > 0 ? `${met.observed} of ${met.denominator} pairings late` : 'no data';
+      } else if (key === 'early') {
+        detail = met.denominator > 0 ? `${met.observed} of ${met.denominator} pairings early` : 'no data';
+      } else if (key === 'long_sits') {
+        detail = met.denominator > 0 ? `${met.observed} of ${met.denominator} sits too long` : 'no data';
+      } else if (key === 'short_overnights') {
+        detail = met.denominator > 0 ? `${met.observed} of ${met.denominator} RONs short` : 'no data';
+      }
       rows += `<div class="metric-row">
-        <div class="metric-name">${cfg[key].label.split('—')[0].trim()}</div>
+        <div class="metric-name">${METRIC_LABELS[key] || key}</div>
         <div class="metric-mini-bar"><div class="metric-mini-fill ${mc.bar}" style="width:${fillPct}%"></div></div>
-        <div class="metric-pts ${mc.cls}">${met.score}/${met.weight}</div>
+        <div class="metric-pts ${mc.cls}">${met.score}</div>
         <div class="metric-detail">${detail}</div>
       </div>`;
     }
@@ -998,7 +1057,7 @@ function renderResults(results, folder) {
       ${badge}
       <div class="card-header">
         <div class="card-code">${r.code}</div>
-        <div class="card-total ${c.cls}">${r.total}<sup>/100</sup></div>
+        <div class="card-total ${c.cls}">${r.total}</div>
       </div>
       <div class="card-bar"><div class="card-bar-fill ${c.bar}" style="width:${r.total}%"></div></div>
       ${rows}
